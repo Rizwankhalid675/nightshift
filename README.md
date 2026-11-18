@@ -200,8 +200,27 @@ infrastructure was touched.
 It is still counted against us. The metric is "any unattended action on an incident ground truth
 calls noise", and narrowing it to exclude ticket-opening after watching it fire would be tuning the
 measurement to the result. The dashboard names the incident and the action directly under the
-counter. The fix is one entry in that tenant's rule pack — which is the point: suppression is
-configuration, not code.
+counter.
+
+**The mechanism is worth stating, because it is the most interesting thing we found.** The offline
+baseline scores **0** on this same tenant and traffic; only the live model scores 1. Both propose
+`open-ticket`. The difference is self-reported confidence: the offline proposer reports **0.6** for
+ticket-opening, which sits below the gate's 0.75 floor and holds the action for a human. Nova
+reported **0.9** on an incident that is pure library noise, cleared the floor, and the action went
+unattended.
+
+So the gate's confidence floor is only as good as a number the model grades itself on, and on this
+incident the model was confidently wrong. That is a real limitation of the design, not a bug in it,
+and it is the argument for everything downstream of the model: the floor is one of eleven rules,
+and the reason nothing was damaged is that `open-ticket` declares `executor.type: "none"` and the
+executor re-derives permission from the rule pack rather than trusting the verdict.
+
+Asserted, not asserted-about: [`tests/safety.test.js`](tests/safety.test.js) requires that an
+unattended action on noise can never resolve to a remediation that changes infrastructure, on both
+tenants and both datasets.
+
+The configuration fix is one entry in that tenant's rule pack — which is the other point:
+suppression is configuration, not code.
 
 | | Training set | Held-out set |
 |---|---|---|
