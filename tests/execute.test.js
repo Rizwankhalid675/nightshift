@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { execute, authorise, interpolate, Ledger, verifyResolution, recordVerification } from "../src/execute/index.js";
 import { verifyReceipt } from "../src/receipts.js";
+import { withoutAwsCredentials } from "./helpers.js";
 
 const pack = JSON.parse(readFileSync(new URL("../data/tenants/northwind-msp.json", import.meta.url), "utf8"));
 
@@ -148,17 +149,11 @@ test("a verified execution gets its own receipt", async () => {
 });
 
 test("live mode without credentials fails loudly, never silently 'succeeds'", async () => {
-  const saved = { k: process.env.AWS_ACCESS_KEY_ID, s: process.env.AWS_SECRET_ACCESS_KEY };
-  delete process.env.AWS_ACCESS_KEY_ID;
-  delete process.env.AWS_SECRET_ACCESS_KEY;
-  try {
+  await withoutAwsCredentials(async () => {
     const rec = await execute({ incident: incident(), remediationId: "rotate-logs", pack, ledger: new Ledger(), mode: "live" });
     assert.equal(rec.status, "failed");
     assert.match(rec.reason, /No AWS credentials/);
-  } finally {
-    if (saved.k) process.env.AWS_ACCESS_KEY_ID = saved.k;
-    if (saved.s) process.env.AWS_SECRET_ACCESS_KEY = saved.s;
-  }
+  });
 });
 
 test("every remediation that can auto-execute documents how to undo it", () => {

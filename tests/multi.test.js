@@ -10,6 +10,7 @@ import { quoteIsReal, sourceEvidence, offlineReviewer, offlineTriage, offlineDia
 import { decide } from "../src/policy.js";
 import { evidence } from "../src/receipts.js";
 import { injectMismatch } from "../src/eval/faults.js";
+import { withoutAwsCredentials } from "./helpers.js";
 
 const pack = JSON.parse(readFileSync(new URL("../data/tenants/northwind-msp.json", import.meta.url), "utf8"));
 
@@ -126,34 +127,22 @@ test("an unclassifiable incident produces low confidence and an evidence gap", (
 
 test("a failing specialist degrades to the single agent instead of stopping", async () => {
   // bedrock provider with no credentials: every turn fails
-  const saved = { k: process.env.AWS_ACCESS_KEY_ID, s: process.env.AWS_SECRET_ACCESS_KEY };
-  delete process.env.AWS_ACCESS_KEY_ID;
-  delete process.env.AWS_SECRET_ACCESS_KEY;
-  try {
+  await withoutAwsCredentials(async () => {
     const out = await proposeMulti(incident(), pack, { provider: "bedrock" });
     assert.equal(out.caseFile.degraded, true);
     assert.match(out.caseFile.degradedReason, /triage agent failed/);
     assert.ok(out.proposal.remediationId, "a proposal is still produced");
     assert.equal(out.review.verdict, "dissent", "a degraded run never auto-remediates");
-  } finally {
-    if (saved.k) process.env.AWS_ACCESS_KEY_ID = saved.k;
-    if (saved.s) process.env.AWS_SECRET_ACCESS_KEY = saved.s;
-  }
+  });
 });
 
 test("a degraded run cannot reach unattended execution", async () => {
   const inc = incident();
-  const saved = { k: process.env.AWS_ACCESS_KEY_ID, s: process.env.AWS_SECRET_ACCESS_KEY };
-  delete process.env.AWS_ACCESS_KEY_ID;
-  delete process.env.AWS_SECRET_ACCESS_KEY;
-  try {
+  await withoutAwsCredentials(async () => {
     const { proposal, shown, review } = await proposeMulti(inc, pack, { provider: "bedrock" });
     const v = decide({ proposal, incident: inc, pack, shown, review });
     assert.notEqual(v.decision, "auto_remediate");
-  } finally {
-    if (saved.k) process.env.AWS_ACCESS_KEY_ID = saved.k;
-    if (saved.s) process.env.AWS_SECRET_ACCESS_KEY = saved.s;
-  }
+  });
 });
 
 test("injected faults only swap in actions that are also auto-approvable", () => {

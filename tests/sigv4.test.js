@@ -81,3 +81,31 @@ test("environment credentials are re-read, never cached across a rotation", asyn
     forgetCachedCredentials();
   }
 });
+
+test("clearing only the key pair is not enough where a container role exists", async () => {
+  // The regression this pins: tests asserted "no credentials" by deleting
+  // AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY. With the container endpoint in
+  // the chain that stopped meaning no credentials on anything with a task role
+  // — green on a laptop and on CI, red in AWS CloudShell.
+  const { resolveCredentials, forgetCachedCredentials } = await import("../src/aws/sigv4.js");
+  const { withoutAwsCredentials } = await import("./helpers.js");
+  const saved = { ...process.env };
+  try {
+    forgetCachedCredentials();
+    delete process.env.AWS_ACCESS_KEY_ID;
+    delete process.env.AWS_SECRET_ACCESS_KEY;
+    // Stand in for a task role: an endpoint is advertised, so the chain has somewhere to go.
+    process.env.AWS_CONTAINER_CREDENTIALS_FULL_URI = "http://169.254.170.2/invalid-for-test";
+
+    // The helper must neutralise that too, or the assertion below is a lie.
+    await withoutAwsCredentials(async () => {
+      await assert.rejects(() => resolveCredentials("bedrock"), /No AWS credentials in the environment/);
+    });
+  } finally {
+    for (const k of ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_CONTAINER_CREDENTIALS_FULL_URI"]) {
+      if (saved[k]) process.env[k] = saved[k];
+      else delete process.env[k];
+    }
+    forgetCachedCredentials();
+  }
+});
