@@ -113,3 +113,33 @@ test("the dashboard shows exactly the metrics the run produced", async () => {
   assert.ok(html.includes(m.runId), "the dashboard does not name the run id");
   assert.ok(html.includes(m.model), "the dashboard does not name the model");
 });
+
+test("the nowrap column rule applies only to the incidents table", async () => {
+  // Regression: this rule was written unscoped, so it also hit the suppressed
+  // table ("Why") and the agent-handoff table ("Said") — both prose columns.
+  // nowrap pushed the handoff text off the right edge of the page.
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("../src/server.js", import.meta.url), "utf8");
+  const rules = src.split("\n").filter((l) => l.includes("nth-last-child"));
+  assert.ok(rules.length > 0, "the column rule disappeared");
+  for (const r of rules) {
+    assert.ok(
+      r.includes("table.incidents"),
+      `an unscoped nth-last-child rule will hit every table on the page: ${r.trim()}`
+    );
+  }
+  // And the table that needs it must actually carry the class.
+  assert.ok(src.includes('<table class="incidents">'), "the incidents table lost its class");
+});
+
+test("prose columns are never forced onto one line", async () => {
+  const { runEval } = await import("../src/eval/run.js");
+  const { incidentPage } = await import("../src/server.js");
+  const data = await runEval({ tenantId: "northwind-msp", provider: "offline", agentMode: "multi" });
+  data.approvals = new Map();
+  const html = incidentPage("northwind-msp", data, data.results[0].incidentId);
+  // The handoff table must not be given the incidents class.
+  const handoff = html.slice(html.indexOf("Agent handoff"));
+  assert.ok(!handoff.slice(0, 400).includes('class="incidents"'),
+    "the agent-handoff table must not inherit the incidents column rule");
+});

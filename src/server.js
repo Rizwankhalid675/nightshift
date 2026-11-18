@@ -87,7 +87,12 @@ tr:hover td{background:#1b222c}
 /* Gate and Remediation both hold short fixed tokens. Let them size to their
    content so 'restart-service' does not break across lines at its hyphen;
    the Diagnosis column absorbs the remaining width. */
-th:last-child,td:last-child,th:nth-last-child(2),td:nth-last-child(2){width:1%;white-space:nowrap}
+/* ONLY the incidents table. Its last two columns are short fixed tokens
+   (remediation id, gate verdict) and must not wrap. Applying this to every
+   table was a regression: the agent-handoff table's second-to-last column
+   is the agent's prose, and nowrap pushed it off the right edge. */
+table.incidents th:last-child,table.incidents td:last-child,
+table.incidents th:nth-last-child(2),table.incidents td:nth-last-child(2){width:1%;white-space:nowrap}
 .p-auto{color:var(--ok);border-color:#1f4a2a;background:#0f2416}
 .p-hold{color:var(--warn);border-color:#4a3b12;background:#241d0f}
 .p-rej{color:var(--bad);border-color:#4a1f1f;background:#240f0f}
@@ -224,7 +229,7 @@ export function dashboard(tenantId, data) {
 
     <div class="card"><h2>Actionable incidents</h2>
       ${data.results.length
-        ? `<table><tr><th>Service</th><th>Diagnosis (model)</th><th>Remediation</th><th>Gate</th></tr>${rows}</table>`
+        ? `<table class="incidents"><tr><th>Service</th><th>Diagnosis (model)</th><th>Remediation</th><th>Gate</th></tr>${rows}</table>`
         : '<div class="empty">Nothing to action. Quiet shift.</div>'}
     </div>
 

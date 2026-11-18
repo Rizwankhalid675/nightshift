@@ -515,7 +515,7 @@ No AWS account, no credentials, no network, no `npm install`. Node 20+ only.
 
 ```bash
 git clone <this repo> && cd nightshift
-npm test                                      # 108 tests
+npm test                                      # 110 tests
 npm run eval                                  # the benchmark, offline baseline
 node src/eval/run.js --tenant acme-retail     # the second tenant
 node src/eval/run.js --mode single            # one agent instead of four
@@ -550,7 +550,7 @@ benchmark through either provider so the model's contribution can be measured ra
 
 | Step | Fails the build when |
 |---|---|
-| `npm test` | any of the 108 tests break |
+| `npm test` | any of the 110 tests break |
 | eval, Northwind + Acme | a real incident is suppressed, or a wrong action auto-runs |
 | eval, **held-out traffic** | the safety numbers stop holding on data the rules never saw |
 | eval, single-agent baseline | the baseline regresses |
@@ -620,7 +620,7 @@ src/server.js       the console
 src/export.js       static export
 src/store.js        durable approvals (atomic writes; swap for DynamoDB)
 data/tenants/       one JSON file per customer environment
-tests/              108 tests
+tests/              110 tests
 .github/workflows/  CI: tests + the eval gate + the reviewer assertion
 ```
 
