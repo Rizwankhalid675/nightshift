@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>aws-msp-ai-hackathon — pitch</title>
+<style>
+  :root{
+    --ink:#0b0d10; --paper:#fbfbfd; --muted:#6b7280; --accent:#1d4ed8; --accent2:#06b6d4;
+    --rule:#e5e7eb; --card:#ffffff;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#f3f4f6; --paper:#0b0d10; --muted:#9ca3af; --rule:#232832; --card:#13161c;
+    }
+  }
+  :root[data-theme="dark"]{ --ink:#f3f4f6; --paper:#0b0d10; --muted:#9ca3af; --rule:#232832; --card:#13161c; }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;overflow:hidden}
+  .deck{height:100vh;width:100vw;position:relative}
+  .slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+    padding:6vh 7vw;opacity:0;transform:translateY(14px) scale(.995);pointer-events:none;
+    transition:opacity .38s ease,transform .38s ease}
+  .slide.on{opacity:1;transform:none;pointer-events:auto}
+  .eyebrow{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);
+    font-weight:700;margin-bottom:1.1rem}
+  h1{font-size:clamp(2.1rem,6.5vw,4.4rem);line-height:1.02;letter-spacing:-.03em;margin:0 0 1rem}
+  h2{font-size:clamp(1.5rem,3.6vw,2.6rem);line-height:1.1;letter-spacing:-.02em;margin:0 0 1.4rem}
+  p.lead{font-size:clamp(1rem,1.9vw,1.4rem);color:var(--muted);max-width:52ch;margin:0}
+  .big{font-size:clamp(3rem,13vw,9rem);font-weight:800;letter-spacing:-.05em;line-height:.92;
+    background:linear-gradient(100deg,var(--accent),var(--accent2));-webkit-background-clip:text;
+    background-clip:text;color:transparent}
+  .grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin-top:2rem}
+  .card{background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:1.1rem 1.2rem}
+  .card .n{font-size:1.9rem;font-weight:750;letter-spacing:-.02em}
+  .card .l{font-size:.86rem;color:var(--muted);margin-top:.25rem}
+  table{border-collapse:collapse;width:100%;margin-top:1.6rem;font-size:clamp(.8rem,1.3vw,1rem)}
+  th,td{text-align:left;padding:.6rem .7rem;border-bottom:1px solid var(--rule)}
+  th{color:var(--muted);font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em}
+  .flow{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:1.8rem}
+  .node{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:.7rem 1rem;
+    font-size:.9rem;font-weight:600}
+  .node.hot{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 16%,transparent)}
+  .arrow{color:var(--muted)}
+  footer{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-between;
+    align-items:center;padding:.9rem 7vw;font-size:.78rem;color:var(--muted);
+    border-top:1px solid var(--rule);background:var(--paper)}
+  .dots{display:flex;gap:6px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--rule);transition:.25s}
+  .dot.on{background:var(--accent);width:20px;border-radius:4px}
+  kbd{border:1px solid var(--rule);border-bottom-width:2px;border-radius:5px;padding:1px 5px;font-size:.72rem}
+  @media (max-width:640px){ .slide{padding:5vh 6vw} footer{padding:.8rem 6vw} }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- 1. PROBLEM — open with the number, never the architecture -->
+  <section class="slide on">
+    <div class="eyebrow">The problem</div>
+    <div class="big">{{BIG_NUMBER}}</div>
+    <h2 style="margin-top:1.2rem">{{PROBLEM_HEADLINE}}</h2>
+    <p class="lead">{{PROBLEM_DETAIL}}</p>
+  </section>
+
+  <!-- 2. SOLUTION -->
+  <section class="slide">
+    <div class="eyebrow">aws-msp-ai-hackathon</div>
+    <h1>{{ONE_LINE}}</h1>
+    <p class="lead">{{SOLUTION_DETAIL}}</p>
+    <div class="grid">
+      <div class="card"><div class="n">{{METRIC_1}}</div><div class="l">{{METRIC_1_LABEL}}</div></div>
+      <div class="card"><div class="n">{{METRIC_2}}</div><div class="l">{{METRIC_2_LABEL}}</div></div>
+      <div class="card"><div class="n">{{METRIC_3}}</div><div class="l">{{METRIC_3_LABEL}}</div></div>
+    </div>
+  </section>
+
+  <!-- 3. ARCHITECTURE — show the deterministic check, it is the credibility slide -->
+  <section class="slide">
+    <div class="eyebrow">How it works</div>
+    <h2>A model proposes. Code decides.</h2>
+    <div class="flow">
+      <div class="node">{{INPUT}}</div><span class="arrow">&rarr;</span>
+      <div class="node">LLM proposal</div><span class="arrow">&rarr;</span>
+      <div class="node hot">Deterministic check</div><span class="arrow">&rarr;</span>
+      <div class="node">Evidence receipt</div><span class="arrow">&rarr;</span>
+      <div class="node">{{OUTPUT}}</div>
+    </div>
+    <p class="lead" style="margin-top:1.6rem">{{ARCH_DETAIL}}</p>
+  </section>
+
+  <!-- 4. PROOF — the before/after progression table -->
+  <section class="slide">
+    <div class="eyebrow">Measured, not claimed</div>
+    <h2>{{PROOF_HEADLINE}}</h2>
+    <table>
+      <thead><tr><th>Version</th><th>What changed</th><th>Result</th><th>Gate</th></tr></thead>
+      <tbody>
+        <tr><td>v1</td><td>{{V1_CHANGE}}</td><td>{{V1_RESULT}}</td><td>BLOCKED</td></tr>
+        <tr><td>v2</td><td>{{V2_CHANGE}}</td><td>{{V2_RESULT}}</td><td>BLOCKED</td></tr>
+        <tr><td>v3</td><td>{{V3_CHANGE}}</td><td>{{V3_RESULT}}</td><td>PASSED</td></tr>
+      </tbody>
+    </table>
+    <p class="lead" style="margin-top:1.2rem">{{PROOF_SOURCE}}</p>
+  </section>
+
+  <!-- 5. WHAT'S NEXT + honest limit -->
+  <section class="slide">
+    <div class="eyebrow">What's next</div>
+    <h2>{{NEXT_HEADLINE}}</h2>
+    <div class="grid">
+      <div class="card"><div class="n">Today</div><div class="l">{{TODAY}}</div></div>
+      <div class="card"><div class="n">Next</div><div class="l">{{NEXT}}</div></div>
+      <div class="card"><div class="n">Honest limit</div><div class="l">{{LIMIT}}</div></div>
+    </div>
+    <p class="lead" style="margin-top:1.8rem">{{LIVE_URL}}</p>
+  </section>
+
+</div>
+
+<footer>
+  <div>aws-msp-ai-hackathon · AWS MSP AI Hackathon</div>
+  <div class="dots" id="dots"></div>
+  <div><kbd>&larr;</kbd> <kbd>&rarr;</kbd> to move</div>
+</footer>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var dotsEl = document.getElementById('dots');
+  var i = 0;
+  slides.forEach(function(_, n){
+    var d = document.createElement('div');
+    d.className = 'dot' + (n === 0 ? ' on' : '');
+    d.addEventListener('click', function(){ go(n); });
+    dotsEl.appendChild(d);
+  });
+  var dots = Array.prototype.slice.call(dotsEl.children);
+  function go(n){
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function(s, k){ s.classList.toggle('on', k === i); });
+    dots.forEach(function(d, k){ d.classList.toggle('on', k === i); });
+    try { location.hash = String(i + 1); } catch (e) {}
+  }
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(i + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(i - 1); }
+    if (e.key === 'Home') go(0);
+    if (e.key === 'End') go(slides.length - 1);
+  });
+  var x0 = null;
+  document.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; }, {passive:true});
+  document.addEventListener('touchend', function(e){
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 50) go(i + (dx < 0 ? 1 : -1));
+    x0 = null;
+  }, {passive:true});
+  var start = parseInt((location.hash || '').replace('#',''), 10);
+  if (start > 0) go(start - 1);
+})();
+</script>
+</body>
+</html>
