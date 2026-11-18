@@ -1,92 +1,107 @@
 # Teleprompter — read this, nothing else
 
-Open this on a phone or second screen. Claude drives the browser; you read.
-Each block is one beat. The cue tells you what Claude is doing while you talk.
+Open on a phone or second screen. Claude drives; you read.
+Nine beats, ~2:55 against a 3:00 cap. Pace ~150 words a minute. Finish a beat early → pause, don't improvise.
 
-Pace: ~150 words a minute. If you finish a block early, pause — do not improvise.
-
----
-
-### 1 · 0:00 → 0:12 · *cue: dashboard, top of page*
-
-This is three days of alerts from a managed service provider's network operations
-centre. Two hundred and three of them. Twelve actually mattered. On-call stopped
-reading these weeks ago — and that is how real outages get missed.
+> **Rules note.** The official rules say the video *"must include footage that shows the internal
+> accounts including all upstream/downstream environments."* That is why beat 6 is the AWS console
+> and a live Bedrock call. **Do not crop or blur the account name or id** — showing it is the
+> requirement. If you are not willing to put the account on YouTube, that is a decision to make
+> before recording, not after.
 
 ---
 
-### 2 · 0:12 → 0:22 · *cue: still on dashboard*
+### 1 · 0:00 → 0:12 · *cue: dashboard, top*
 
-NightShift. Rules decide what deserves attention. Amazon Bedrock decides what is
-wrong and what to do. And deterministic code decides whether a robot is allowed to
-touch anything.
-
----
-
-### 3 · 0:22 → 0:42 · *cue: scrolls to the suppressed panel*
-
-A hundred and seventeen of these alerts never reach the model at all. Seventy-one
-are a benign pattern the sync library logs at ERROR. Sixteen fall inside a nightly
-maintenance window. Thirty are one probe flapping. Every one of them says why, in
-writing — so suppression is auditable, not magic.
+This is three days of alerts from a managed service provider's network operations centre. Two
+hundred and three of them. Twelve actually mattered. On-call stopped reading these weeks ago — and
+that is how real outages get missed.
 
 ---
 
-### 4 · 0:42 → 1:12 · *cue: opens the payments-gateway incident, scrolls through evidence and the agent table*
+### 2 · 0:12 → 0:22 · *cue: still on the dashboard*
 
-Here is one real incident. Four alerts, one payments outage. This is everything the
-model was shown, and nothing else — every item hashed. Four agents run in sequence:
-triage, diagnosis, remediation, and a reviewer whose only job is to disagree. The
-reviewer has to quote the evidence to confirm anything.
+NightShift. Rules decide what deserves attention. Amazon Bedrock decides what is wrong and what to
+do. And deterministic code decides whether a robot is allowed to touch anything.
 
 ---
 
-### 5 · 1:12 → 1:50 · *cue: scrolls to the reviewer verdict and the gate — THE SHOT*
+### 3 · 0:22 → 0:40 · *cue: scrolls to the suppressed panel*
 
-Now the part I did not plan. Everything here came from Amazon Nova on Bedrock — the
-footer names the model and the run.
+A hundred and seventeen of these alerts never reach the model. A benign pattern the sync library
+logs at ERROR. A nightly maintenance window. A probe flapping. Every one says why, in writing — so
+suppression is auditable, not magic.
 
-Look at the reviewer. It said *confirmed*. And it supplied a quote to justify that,
-which was not in the evidence. The model fabricated its own citation.
+---
 
-Code checked the quote against the source, found it missing, and downgraded the
-verdict to a dissent — which costs the unattended path at the gate. The action was
+### 4 · 0:40 → 1:06 · *cue: opens the payments-gateway incident, scrolls the evidence and agent table*
+
+One real incident. Five alerts, one payments outage. This is everything the model was shown and
+nothing else — every item hashed. Four agents in sequence: triage, diagnosis, remediation, and a
+reviewer whose only job is to disagree.
+
+---
+
+### 5 · 1:06 → 1:42 · *cue: scrolls to the reviewer verdict and the gate — THE SHOT*
+
+Now the part I did not plan.
+
+The reviewer said *confirmed*. And it supplied a quote to justify that — which is not in the
+evidence. The model fabricated its own citation.
+
+Code checked that quote against the source, did not find it, and says so right here: the quote it
+offered is **not** in the source evidence. The verdict is downgraded to a dissent, and the action is
 held for a human.
 
 That is the whole design working against a real model, not a claim about one.
 
 ---
 
-### 6 · 1:50 → 2:12 · *cue: switches to the GitHub README, live results table*
+### 6 · 1:42 → 2:08 · *cue: switches to the AWS console, runs a live Bedrock call*
 
-Measured on two datasets. Ninety-four per cent of volume gone on the first.
-Eighty-seven on a held-out set with services and failures no rule was written for.
-Zero wrong actions taken unattended. Zero real incidents missed. And on the
-unfamiliar data it automated less, not more.
-
----
-
-### 7 · 2:12 → 2:28 · *cue: back to the console, clicks the acme-retail tab*
-
-Same binary, different customer. A second tenant with its own rule pack, its own
-maintenance windows, its own idea of what a robot may do unsupervised. Nothing here
-is hardcoded to one environment.
+This is the account it runs in. Region us-east-2, Amazon Bedrock, Nova Pro — and that is a live
+call going out right now and coming back. The console you just saw is a snapshot of exactly this,
+run across both tenants. No static credentials anywhere: it signs with the task role.
 
 ---
 
-### 8 · 2:28 → 2:45 · *cue: back to the dashboard, settles on the hero numbers*
+### 7 · 2:08 → 2:26 · *cue: GitHub README, live results table*
 
-The traffic is synthetic and seeded, so every number reproduces. Execution is
-dry-run by default. The limits are in the README, written before you asked. It is
-public, it is hosted, and it runs on your laptop with nothing but node.
+Measured on two datasets. Ninety-four per cent of volume gone on the first. Eighty-seven on a
+held-out set with services and failures no rule was written for. Zero wrong actions taken
+unattended, zero real incidents missed — and on the unfamiliar data it automated less, not more.
+
+---
+
+### 8 · 2:26 → 2:42 · *cue: back to the console, clicks the acme-retail tab — show the red number*
+
+Same binary, different customer. And this one is not clean. One unattended action on an incident
+our own labels call noise. It opened a ticket — it changed nothing — but we count it against
+ourselves, and the dashboard says so without being asked. That tenant simply has not configured the
+suppression the first one has.
+
+---
+
+### 9 · 2:42 → 2:55 · *cue: back to the dashboard, settles on the hero numbers*
+
+The traffic is synthetic and seeded, so every number reproduces. Execution is dry-run by default.
+The limits are in the README, written before you asked. It is hosted, it runs on your laptop with
+nothing but node, and the whole site regenerates from the saved run data.
 
 ---
 
 ## Before you hit record
 
-- Chrome on the NightShift tab, full screen. Close other tabs — the titles show.
-- Hide bookmarks (`cmd+shift+B`), turn on Do Not Disturb.
-- Nothing in this run touches the AWS console, so there is no account id on screen.
-- Start recording, then type **go** to Claude. Claude waits 3 seconds, then drives
-  the whole path on a timer. You just read.
-- If you fluff a line, keep going — fix it in the edit, or run it again. Takes are cheap.
+- Chrome full screen on the NightShift tab. Hide bookmarks (`cmd+shift+B`). Do Not Disturb on.
+- Leave the **AWS CloudShell tab open** — beat 6 needs it, and the account on screen is required.
+- Close every other tab; titles are readable.
+- Start recording, then type **go**. Claude waits 3 seconds and then drives the whole path on a
+  timer, including the live Bedrock call in beat 6.
+- Fluff a line? Keep going. Takes are cheap and the choreography is repeatable.
+
+## What beat 8 buys you
+
+Most entries will claim their guardrails work. This one shows a model fabricating a citation and
+being caught (beat 5), then volunteers its own failing number and explains it (beat 8). Judges are
+scoring "does the solution actually deliver those outcomes **based on what's demonstrated**".
+Demonstrated includes the part that did not go perfectly.

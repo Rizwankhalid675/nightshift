@@ -146,6 +146,40 @@ export function reviewerQuoteBlock(review) {
   return '<p class="mono">no supporting quote was offered — this is why it did not confirm</p>';
 }
 
+/**
+ * A red number with no explanation is worse than useless to an operator: the
+ * first question is always "which one, and what did it do?". When the safety
+ * counter is non-zero the console answers that on the same screen.
+ *
+ * It is deliberately not suppressed or softened. The metric counts any
+ * unattended action on an incident ground truth calls noise, including
+ * `open-ticket`, which changes nothing. Narrowing the metric after seeing it
+ * fire would be tuning the measurement to the result.
+ */
+export function falseAutoDetail(tenantId, data) {
+  const bad = (data.results || []).filter(
+    (r) => r.truth === "noise" && r.verdict?.decision === "auto_remediate"
+  );
+  if (!bad.length) return "";
+  const rows = bad
+    .map((r) => {
+      const touched = r.execution && !["refused", "no_action"].includes(r.execution.status);
+      return `<li><a href="/incident/${encodeURIComponent(r.incidentId)}?tenant=${encodeURIComponent(tenantId)}">${esc(r.service)}</a>
+        — <span class="mono">${esc(r.proposal?.remediationId ?? "?")}</span>
+        ${touched ? "<strong>changed infrastructure</strong>" : "no infrastructure change"}</li>`;
+    })
+    .join("");
+  return `<div class="card">
+    <h2>Why the false auto-action counter is not zero</h2>
+    <p class="mono">An unattended action was taken on an incident this benchmark labels noise.
+    Counted against us whatever the action was.</p>
+    <ul class="reasons">${rows}</ul>
+    <p class="mono">Most often this is suppression that this tenant has not configured: a pattern
+    another tenant lists as benign reaches the model here. Suppression is rule-pack configuration,
+    not code — see the tenant's rule pack.</p>
+  </div>`;
+}
+
 export function dashboard(tenantId, data) {
   const m = data.metrics;
   const reduction = ((1 - m.actionable / m.alertsIn) * 100).toFixed(1);
@@ -178,6 +212,8 @@ export function dashboard(tenantId, data) {
       ${kpi(m.falseAutoRemediations, "false auto-actions", m.falseAutoRemediations ? "bad" : "good")}
       ${kpi(m.missedActionable, "real incidents missed", m.missedActionable ? "bad" : "good")}
     </div>
+
+    ${falseAutoDetail(tenantId, data)}
 
     <div class="card"><h2>Actionable incidents</h2>
       ${data.results.length

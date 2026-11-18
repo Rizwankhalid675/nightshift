@@ -45,3 +45,43 @@ test("the quote is escaped, so evidence text cannot inject markup", () => {
   const html = reviewerQuoteBlock({ verdict: "confirm", quote: "<script>x</script>", quoteVerified: true });
   assert.doesNotMatch(html, /<script>/);
 });
+
+test("a zero false-auto counter adds no explanatory block", async () => {
+  const { falseAutoDetail } = await import("../src/server.js");
+  const data = { results: [{ truth: "actionable", verdict: { decision: "auto_remediate" }, incidentId: "i", service: "s" }] };
+  assert.equal(falseAutoDetail("t", data), "");
+});
+
+test("a non-zero false-auto counter names the incident and the action", async () => {
+  const { falseAutoDetail } = await import("../src/server.js");
+  const data = {
+    results: [{
+      truth: "noise",
+      verdict: { decision: "auto_remediate" },
+      incidentId: "inc_abc",
+      service: "catalog-sync",
+      proposal: { remediationId: "open-ticket" },
+      execution: { status: "no_action" },
+    }],
+  };
+  const html = falseAutoDetail("acme-retail", data);
+  assert.match(html, /catalog-sync/);
+  assert.match(html, /open-ticket/);
+  assert.match(html, /no infrastructure change/);
+  assert.match(html, /inc_abc/);
+});
+
+test("an action that really changed infrastructure is called that, not softened", async () => {
+  const { falseAutoDetail } = await import("../src/server.js");
+  const data = {
+    results: [{
+      truth: "noise",
+      verdict: { decision: "auto_remediate" },
+      incidentId: "inc_x",
+      service: "billing",
+      proposal: { remediationId: "restart-service" },
+      execution: { status: "succeeded" },
+    }],
+  };
+  assert.match(falseAutoDetail("t", data), /changed infrastructure/);
+});

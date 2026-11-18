@@ -3,3 +3,5 @@ runs/
 node_modules/
 .env
 *.log
+dist/
+dist-live/

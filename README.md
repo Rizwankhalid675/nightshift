@@ -33,10 +33,23 @@ Four criteria, 25% each.
 
 | Criterion | How we meet it | Where |
 |---|---|---|
-| **Technological Implementation** | Bedrock in the live path, signed from scratch with zero dependencies. Around it: a pure-function correlation engine, a eleven-rule policy gate, tamper-evident evidence receipts, four specialist Bedrock agents with an adversarial reviewer, a two-tenant benchmark, a Systems Manager execution layer that re-authorises independently, and **84 passing tests** including fault-injection ones. | [§1](#1-technological-implementation) |
+| **Technological Implementation** | Bedrock in the live path, signed from scratch with zero dependencies. Around it: a pure-function correlation engine, an eleven-rule policy gate, tamper-evident evidence receipts, four specialist Bedrock agents with an adversarial reviewer, a two-tenant benchmark, a Systems Manager execution layer that re-authorises independently, and **95 passing tests** including fault-injection ones. | [§1](#1-technological-implementation) |
 | **Design** | The whole on-call loop in one console: what came in, what was suppressed and why, what the model proposed, what the gate decided, what a human still owes. Multi-tenant from the contracts up — **onboarding a customer is writing a JSON rule pack, not editing code**. | [§2](#2-design) |
 | **Potential Impact** | A reproducible benchmark with a published baseline: **94.1% of alert volume removed, with zero real incidents missed**. Every number regenerates from `npm run eval`. | [§3](#3-potential-impact) |
 | **Innovation / Idea** | The novelty is *where the model sits*. It proposes; code decides. A proposal that cites evidence it was never shown is rejected automatically, and nothing irreversible ever runs unattended. | [§4](#4-innovation--idea) |
+
+### Submission artefacts
+
+| Required | Where |
+|---|---|
+| Working, publicly hosted project | <https://webrizz.dev/nightshift/> |
+| AWS AI service, called at runtime | Amazon Bedrock Converse — [`src/agent/bedrock.js`](src/agent/bedrock.js), invoked from [`src/agent/multi.js`](src/agent/multi.js) |
+| Track | Track 1 — Run Your MSP Better |
+| **High Level Design document** | [`docs/HLD.md`](docs/HLD.md) |
+| Architecture diagram | [§1](#1-technological-implementation), below |
+| Judging rubric, read from the official rules | [`docs/EVENT.md`](docs/EVENT.md) |
+| Live run data, for reproducing the hosted site | [`dist-runs/`](dist-runs/) |
+| Demo video | *(link added on submission)* |
 
 ---
 
@@ -167,9 +180,26 @@ on an AWS CloudShell task role with **no static credentials anywhere**. Both dat
 temperature 0. Raw run files are written to `runs/` by `npm run eval`.
 
 **The hosted console is this, not a mock.** <https://webrizz.dev/nightshift/> is a static snapshot
-of a third live Bedrock run (`72a81c1b`); its footer names the model and the run id, the diagnoses
-are the model's own prose, and the dissents are on the incident pages. It renders a real run — it
-does not call Bedrock on page load.
+of live Bedrock runs — `f3b3a3d8` for northwind-msp, `f11bda28` for acme-retail. Its footer names
+the model and the run id, the diagnoses are the model's own prose, and the dissents are on the
+incident pages. It renders real runs; it does not call Bedrock on page load. The complete run data
+for both is committed under [`dist-runs/`](dist-runs/), and
+`node src/export.js --from dist-runs --out dist` regenerates the deployed site from it byte for
+byte, with no model call.
+
+**The second tenant scores a safety failure, and the console says so.** On `acme-retail`
+(run `f11bda28`) the counter reads **1 false auto-action**, not zero. 23 alerts of library noise —
+"Skipping creation for item … an inactive item already exists" — reached the model, because that
+tenant ships with no benign-pattern suppression configured while northwind-msp does. The model did
+not try to repair anything: it proposed `open-ticket`, and the gate allowed that unattended because
+a ticket is reversible, zero blast radius and opted in. Execution status is `no_action`; no
+infrastructure was touched.
+
+It is still counted against us. The metric is "any unattended action on an incident ground truth
+calls noise", and narrowing it to exclude ticket-opening after watching it fire would be tuning the
+measurement to the result. The dashboard names the incident and the action directly under the
+counter. The fix is one entry in that tenant's rule pack — which is the point: suppression is
+configuration, not code.
 
 | | Training set | Held-out set |
 |---|---|---|
@@ -595,6 +625,11 @@ Newly created during the submission period. Full history is in this repository.
   so the live figures come from `us.amazon.nova-pro-v1:0`. Because the client speaks Bedrock's
   Converse API, the model is one environment variable — but no Claude-measured number is claimed
   here, and a different family could behave differently.
+- **A live run on the second tenant produced one false auto-action.** Detailed above and shown on
+  the console itself. It was a ticket, not an infrastructure change, and it came from suppression
+  that tenant has not configured — but the safety claim "zero wrong actions taken unattended" holds
+  for the northwind-msp training and held-out sets, **not** for acme-retail on run `f11bda28`. Said
+  plainly so that nobody has to discover it by clicking.
 - **Two runs is not a sample, and the runs differ.** The live figures are one run per dataset at
   temperature 0. They demonstrate that the path works end to end and that the gate holds; they are
   not a statistical claim about model quality. Temperature 0 is not determinism: a third run of the
