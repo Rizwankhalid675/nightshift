@@ -92,12 +92,29 @@ nothing but node, and the whole site regenerates from the saved run data.
 
 ## Before you hit record
 
-- Chrome full screen on the NightShift tab. Hide bookmarks (`cmd+shift+B`). Do Not Disturb on.
-- Leave the **AWS CloudShell tab open** — beat 6 needs it, and the account on screen is required.
-- Close every other tab; titles are readable.
-- Start recording, then type **go**. Claude waits 3 seconds and then drives the whole path on a
-  timer, including the live Bedrock call in beat 6.
-- Fluff a line? Keep going. Takes are cheap and the choreography is repeatable.
+**Drive it yourself.** While Claude controls the browser, Chrome pins a
+`"Claude" started debugging this browser` banner across the top of every tab — and that banner
+lands in the recording. Click **Cancel** on it before you record. Claude then loses browser
+control, which is the point: you get a clean frame.
+
+Both tabs are already staged, so you only need nine simple actions.
+
+| Beat | What you do |
+|---|---|
+| 1–2 | Nothing. Dashboard, top of page. |
+| 3 | Scroll down to **"Suppressed by the deterministic layer"** |
+| 4 | Click the **payments-gateway** row marked *critical · 5 alerts collapsed* (the second payments-gateway row) |
+| 5 | Scroll down slowly through the agent table → reviewer dissent → gate → receipt |
+| 6 | Switch to the **CloudShell** tab (`cmd+2`). The live Bedrock response is already on screen |
+| 7 | Same screen — the line below it reads *REGENERATED FROM SAVED RUN DATA — BYTE IDENTICAL* |
+| 8 | Back to the NightShift tab (`cmd+1`), click the **acme-retail** tab in the page header |
+| 9 | Click **northwind-msp**, scroll to top, hold on the six numbers |
+
+Also: hide bookmarks (`cmd+shift+B`), Do Not Disturb on, close the other tabs — several titles are
+readable and some are personal.
+
+If the CloudShell terminal is ever blank when you get to beat 6, the session reset. Ask Claude to
+restore it; it is two commands.
 
 ## What beat 8 buys you
 
