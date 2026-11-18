@@ -13,6 +13,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { runEval } from "./eval/run.js";
 import { receipt, verifyReceipt, short } from "./receipts.js";
 import { execute, Ledger, verifyResolution, recordVerification } from "./execute/index.js";
+import { defaultStore } from "./store.js";
 
 const PORT = Number(process.env.PORT || 3000);
 const PROVIDER = process.env.AGENT_PROVIDER || "offline";
@@ -26,8 +27,26 @@ const state = new Map();
 
 async function load(tenantId) {
   const out = await runEval({ tenantId, provider: PROVIDER });
-  out.approvals = new Map();
   out.ledger = new Ledger();
+
+  // Replay approvals recorded by earlier processes. Incident ids are derived
+  // from tenant + signature + first-alert timestamp, so they are stable across
+  // restarts and a stored approval still matches its incident.
+  const stored = defaultStore.approvalsFor(tenantId);
+  out.approvals = new Map([...stored].map(([id, rec]) => [id, rec.approvedBy]));
+  let replayed = 0;
+  for (const [incidentId, rec] of stored) {
+    const r = out.results.find((x) => x.incidentId === incidentId);
+    if (!r) continue;
+    r.approvalReceipt = receipt({
+      incidentId, actor: `human:${rec.approvedBy}`,
+      action: `approved:${rec.remediationId}`, evidence: r.receipt.evidence,
+      approvedBy: rec.approvedBy, at: rec.at,
+    });
+    replayed++;
+  }
+  if (replayed) console.log(`  replayed ${replayed} stored approval(s) for ${tenantId}`);
+
   state.set(tenantId, out);
   return out;
 }
@@ -257,6 +276,14 @@ export const server = createServer(async (req, res) => {
       const r = data.results.find((x) => x.incidentId === form.id);
       if (r && url.pathname === "/approve") {
         data.approvals.set(form.id, "operator");
+        defaultStore.recordApproval({
+          tenantId: form.tenant,
+          incidentId: form.id,
+          remediationId: r.verdict.remediationId,
+          approvedBy: "operator",
+          at: new Date().toISOString(),
+          decisionDigest: r.receipt.inputDigest,
+        });
         r.approvalReceipt = receipt({
           incidentId: form.id, actor: "human:operator",
           action: `approved:${r.verdict.remediationId}`, evidence: r.receipt.evidence, approvedBy: "operator",

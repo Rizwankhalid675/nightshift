@@ -34,11 +34,11 @@ const median = (xs) => {
   return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
 };
 
-export async function runEval({ tenantId, provider, days = 3, seed = 20261211, agentMode, inject }) {
+export async function runEval({ tenantId, provider, days = 3, seed = 20261211, agentMode, inject, set = "train" }) {
   const mode = agentMode || process.env.AGENT_MODE || "multi";
   const pack = JSON.parse(readFileSync(new URL(`../../data/tenants/${tenantId}.json`, import.meta.url), "utf8"));
 
-  const withTruth = generate({ tenantId, days, seed });
+  const withTruth = generate({ tenantId, days, seed, set });
   const truth = truthIndex(withTruth);
   const alerts = stripTruth(withTruth);
 
@@ -129,6 +129,7 @@ export async function runEval({ tenantId, provider, days = 3, seed = 20261211, a
     executorMode: execMode,
     agentMode: mode,
     injectedFault: inject || "none",
+    dataset: set,
     reviewerDissents: results.filter((r) => r.review && r.review.verdict !== "confirm").length,
     degradedRuns: results.filter((r) => r.caseFile?.degraded).length,
     model,
@@ -141,7 +142,7 @@ function printReport({ metrics, results, incidents }) {
   const pct = ((1 - metrics.actionable / metrics.alertsIn) * 100).toFixed(1);
   const row = (k, v) => console.log(`  ${k.padEnd(34)} ${v}`);
 
-  console.log(`\n  ${metrics.label}  ·  run ${metrics.runId}  ·  model ${metrics.model}`);
+  console.log(`\n  ${metrics.label}  ·  run ${metrics.runId}  ·  dataset ${metrics.dataset}  ·  model ${metrics.model}`);
   console.log("  " + "-".repeat(54));
   row("Alerts in", metrics.alertsIn);
   row("Incidents after correlation", metrics.incidentsOut);
@@ -187,10 +188,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const tenantId = arg("tenant", "northwind-msp");
   const agentMode = arg("mode", process.env.AGENT_MODE || "multi");
   const inject = arg("inject", "none");
+  const set = arg("set", "train");
   const provider = arg("provider", process.env.AGENT_PROVIDER || "offline");
   const days = Number(arg("days", "3"));
 
-  runEval({ tenantId, provider, days, agentMode, inject })
+  runEval({ tenantId, provider, days, agentMode, inject, set })
     .then((out) => {
       printReport(out);
       mkdirSync(new URL("../../runs/", import.meta.url), { recursive: true });

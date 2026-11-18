@@ -1,37 +1,35 @@
 #!/usr/bin/env bash
-# One command, everything up. Idempotent: safe to run twice.
+# Start the NightShift console. Idempotent: safe to run twice.
+#
+#   ./scripts/demo-up.sh              # offline proposer, dry-run executor
+#   PORT=3100 ./scripts/demo-up.sh    # pick a port
+#   AGENT_PROVIDER=bedrock ./scripts/demo-up.sh   # needs AWS credentials
 set -euo pipefail
 cd "$(dirname "$0")/.."
-RUN=.runtime; mkdir -p "$RUN/logs" "$RUN/pids"
+PORT="${PORT:-3100}"
+RUN=.runtime
+mkdir -p "$RUN/logs" "$RUN/pids"
 
-up() { # up <name> <port> <command...>
-  local name=$1 port=$2; shift 2
-  if curl -fsS --max-time 1 "http://127.0.0.1:$port/health" >/dev/null 2>&1; then
-    echo "  = $name already up on :$port"; return
-  fi
-  echo "  + starting $name on :$port"
-  ( "$@" >"$RUN/logs/$name.log" 2>&1 & echo $! > "$RUN/pids/$name.pid" )
-}
+if curl -fsS --max-time 1 "http://127.0.0.1:$PORT/healthz" >/dev/null 2>&1; then
+  echo "  = console already up on :$PORT"
+else
+  echo "  + starting console on :$PORT"
+  PORT="$PORT" node src/server.js >"$RUN/logs/console.log" 2>&1 &
+  echo $! > "$RUN/pids/console.pid"
 
-wait_for() { # wait_for <name> <port> <seconds>
-  local name=$1 port=$2 secs=${3:-30} i=0
-  while [ $i -lt "$secs" ]; do
-    curl -fsS --max-time 1 "http://127.0.0.1:$port/health" >/dev/null 2>&1 && { echo "  v $name ready"; return 0; }
-    sleep 1; i=$((i+1))
+  i=0
+  until curl -fsS --max-time 1 "http://127.0.0.1:$PORT/healthz" >/dev/null 2>&1; do
+    i=$((i + 1))
+    if [ "$i" -ge 30 ]; then
+      echo "  x console did not become ready in 30s — see $RUN/logs/console.log"
+      tail -5 "$RUN/logs/console.log" 2>/dev/null || true
+      exit 1
+    fi
+    sleep 1
   done
-  echo "  x $name did not become ready in ${secs}s — see $RUN/logs/$name.log"; return 1
-}
+  echo "  v console ready"
+fi
 
-echo "Starting demo stack..."
-# --- edit these for your project -------------------------------------------
-# up api 8000 npm run dev:api
-# up web 3000 npm run dev:web
-# wait_for api 8000 40
-# wait_for web 3000 40
-# ---------------------------------------------------------------------------
-
-if [ "${1:-}" = "--check" ]; then exec ./scripts/demo-status.sh; fi
-[ "${1:-}" = "--no-reset" ] || ./scripts/demo-reset.sh
 ./scripts/demo-status.sh
 echo
-echo "Demo ready. Open http://127.0.0.1:3000"
+echo "  Open http://127.0.0.1:$PORT"

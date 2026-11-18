@@ -92,3 +92,22 @@ test("the published headline holds: 203 alerts reduce to 12 pages", () => {
 test("a rule pack missing required fields is rejected loudly", () => {
   assert.throws(() => correlate([], { tenantId: "x" }), /RulePack missing/);
 });
+
+test("the safety gate holds on held-out traffic the rules were never tuned for", async () => {
+  // The honest test: different services, different wording, and two failure
+  // classes no rule was written for. Both safety numbers must still be zero.
+  const { runEval } = await import("../src/eval/run.js");
+  const out = await runEval({ tenantId: "northwind-msp", provider: "offline", agentMode: "multi", set: "holdout" });
+  assert.equal(out.metrics.falseAutoRemediations, 0, "a wrong action ran unattended on unseen traffic");
+  assert.equal(out.metrics.missedActionable, 0, "a real incident was suppressed on unseen traffic");
+  assert.ok(out.metrics.alertsIn > 100);
+});
+
+test("unfamiliar traffic is automated less, not more", async () => {
+  const { runEval } = await import("../src/eval/run.js");
+  const train = await runEval({ tenantId: "northwind-msp", provider: "offline", agentMode: "multi" });
+  const held = await runEval({ tenantId: "northwind-msp", provider: "offline", agentMode: "multi", set: "holdout" });
+  const trainRate = train.metrics.autoRemediated / train.metrics.actionable;
+  const heldRate = held.metrics.autoRemediated / held.metrics.actionable;
+  assert.ok(heldRate < trainRate, `held-out automation rate ${heldRate} should be below ${trainRate}`);
+});

@@ -107,6 +107,17 @@ Reply with ONLY JSON:
 // ------------------------------------------------- offline implementations
 
 const text = (ev) => ev.map((e) => e.observed).join("\n").toLowerCase();
+
+/**
+ * Symptom evidence only: the alerts, and real metrics. NOT the runbook.
+ *
+ * The runbook describes the CURES ("re-run the failed sync batch"), so
+ * matching symptom keywords against it makes every incident look like whatever
+ * the runbook happens to mention. That is a classifier reading the answer key.
+ */
+const SYMPTOM_KINDS = new Set(["alerts", "metric"]);
+export const symptomText = (ev) =>
+  ev.filter((e) => SYMPTOM_KINDS.has(e.kind)).map((e) => e.observed).join("\n").toLowerCase();
 const all = (ev) => ev.map((e) => e.digest);
 
 /**
@@ -128,7 +139,7 @@ const KEYWORDS = {
 
 /** @returns {{category:string, urgency:string, summary:string, citations:string[]}} */
 export function offlineTriage(incident, ev) {
-  const t = text(ev);
+  const t = symptomText(ev);
   let category = "unknown";
   if (/disk usage|\/var\/log|memory|connections/.test(t)) category = "capacity";
   else if (/connection refused|unreachable|100% of requests|5\d\d/.test(t)) category = "availability";
@@ -145,7 +156,7 @@ export function offlineTriage(incident, ev) {
 }
 
 export function offlineDiagnosis(incident, ev, triage) {
-  const t = text(ev);
+  const t = symptomText(ev);
   const by = {
     capacity: `The log volume on ${incident.service} is filling and has crossed its threshold.`,
     availability: `${incident.service} is refusing connections; its upstream appears to be down.`,

@@ -35,6 +35,9 @@ jobs:
       - name: Safety gate — single agent baseline
         run: node src/eval/run.js --tenant northwind-msp --mode single
 
+      - name: Safety gate — held-out traffic the rules were never tuned for
+        run: node src/eval/run.js --set holdout --mode multi
+
       - name: Reviewer must catch injected faults
         run: node src/eval/compare.js --assert
 

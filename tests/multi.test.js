@@ -162,3 +162,33 @@ test("injected faults only swap in actions that are also auto-approvable", () =>
   const rem = pack.remediations.find((r) => r.id === wrong);
   assert.equal(rem.autoApprove, true);
 });
+
+test("triage classifies from symptoms, never from the runbook", () => {
+  // Regression: the runbook says "re-run the failed sync batch", so matching
+  // symptom keywords across all evidence made every incident look like a job
+  // failure. A classifier must not read the cure list.
+  const ev = [
+    evidence("alerts", "inc", "handler.dispatch() returned control to caller after 12 ms"),
+    evidence("runbook", "tenant", "rerun-failed-batch: Re-run the failed sync batch once"),
+  ];
+  const inc = {
+    id: "i", tenantId: "t", service: "report-worker", severity: "error",
+    openedAt: "2026-12-01T01:00:00.000Z", lastSeenAt: "2026-12-01T01:10:00.000Z",
+    alerts: [{ message: "handler.dispatch() returned control" }], signature: "s",
+    class: "actionable", notes: [],
+  };
+  assert.equal(offlineTriage(inc, ev).category, "unknown");
+});
+
+test("an unrecognised pattern is held for a human, not automated", () => {
+  const ev = [evidence("alerts", "inc", "handler.dispatch() returned control to caller after 12 ms")];
+  const inc = {
+    id: "i", tenantId: "t", service: "report-worker", severity: "error",
+    openedAt: "2026-12-01T01:00:00.000Z", lastSeenAt: "2026-12-01T01:10:00.000Z",
+    alerts: [{ message: "x" }], signature: "s", class: "actionable", notes: [],
+  };
+  const tri = offlineTriage(inc, ev);
+  const diag = offlineDiagnosis(inc, ev, tri);
+  assert.equal(tri.category, "unknown");
+  assert.ok(diag.confidence < 0.75, "unknown categories must fall below the confidence floor");
+});

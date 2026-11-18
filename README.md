@@ -145,8 +145,8 @@ not a log line.
 
 ```
 $ npm test
-ℹ tests 69
-ℹ pass 69
+ℹ tests 75
+ℹ pass 75
 ℹ fail 0
 ```
 
@@ -234,7 +234,12 @@ horizontally; a real deployment points the ledger at DynamoDB (one interface, `s
 The console covers the loop: KPI header, actionable incidents with the model's diagnosis and the
 gate's verdict, a separate panel for everything suppressed *with the reason*, and a detail page
 showing exactly what the model was shown, what it proposed, which rules fired, and the receipt.
-Approve or decline from the incident page. Dark, responsive, no build step, no framework.
+Approve or decline from the incident page. Approvals are **durable**: each one is written
+atomically to disk with the digest of the decision it approved, replayed on boot, and survives a
+restart or redeploy. Swapping the store for DynamoDB is one file (`src/store.js`) because the
+server already awaits its three methods.
+
+Dark, responsive, no build step, no framework.
 
 ---
 
@@ -280,6 +285,41 @@ trust:
 The hours figure is the one an MSP cares about and the one I can least defend, so the tool prints
 the sensitivity next to it rather than picking the flattering number. **The claim that needs no
 assumption at all is 76.4% fewer model calls and zero missed incidents.**
+
+### Does it hold on traffic it has never seen?
+
+The obvious objection to everything above: the rules and the ground truth were written by the same
+person, so scoring well on them proves less than it looks. So there is a **held-out set** —
+different services, different wording for the same failures, and two classes no rule was written
+for (certificate expiry, queue backlog).
+
+```bash
+node src/eval/run.js --set holdout
+```
+
+**The first held-out run failed.** Three noise incidents were auto-remediated — the exact thing the
+safety number exists to prevent. The cause: `offlineTriage` matched symptom keywords across *all*
+the evidence, and the evidence includes the runbook. The runbook says *"re-run the failed sync
+batch"*, so every incident looked like a job failure. The classifier was reading the cure list.
+
+The fix is a rule, not a patch for this dataset: **classify from symptoms only** — alerts and
+metrics, never the runbook. The training set did not change at all, which is what tells you the fix
+was principled rather than fitted to the held-out data.
+
+| | Training set | Held-out set |
+|---|---|---|
+| Alerts | 203 | 140 |
+| Pages to a human | 12 | 18 |
+| Auto-remediated | 6 of 12 | **3 of 18** |
+| False auto-remediations | 0 | **0** (was 3 before the fix) |
+| Real incidents missed | 0 | 0 |
+
+Read the auto-remediation row: on traffic it recognises, it automates half. On traffic it does not,
+it automates a sixth and asks a human about the rest. **It automates less when it recognises less**,
+which is the behaviour you want from something holding your customers' infrastructure. That is not
+tuned in; it falls out of unknown categories scoring below the confidence floor.
+
+Both datasets run in CI.
 
 ### What a judge should check
 
@@ -345,11 +385,13 @@ No AWS account, no credentials, no network, no `npm install`. Node 20+ only.
 
 ```bash
 git clone <this repo> && cd nightshift
-npm test                                      # 69 tests
+npm test                                      # 75 tests
 npm run eval                                  # the benchmark, offline baseline
 node src/eval/run.js --tenant acme-retail     # the second tenant
 node src/eval/run.js --mode single            # one agent instead of four
 node src/eval/run.js --inject mismatch        # hand it a wrong action on purpose
+node src/eval/run.js --set holdout            # traffic the rules were never tuned for
+npm run impact                                # business outcome and scale
 node src/server.js                            # console on http://localhost:3000
 node src/export.js                            # static export to dist/
 
@@ -376,6 +418,7 @@ benchmark through either provider so the model's contribution can be measured ra
 |---|---|
 | `npm test` | any of the 69 tests break |
 | eval, Northwind + Acme | a real incident is suppressed, or a wrong action auto-runs |
+| eval, **held-out traffic** | the safety numbers stop holding on data the rules never saw |
 | eval, single-agent baseline | the baseline regresses |
 | `compare.js --assert` | the reviewer raises a false dissent, **or** an injected fault reaches unattended execution, **or** the fault turns out not to be dangerous enough to prove anything |
 | `export.js` | the static build breaks |
@@ -413,6 +456,7 @@ Start with [`AGENTS.md`](AGENTS.md).
 | Multi-agent orchestration + degradation | `src/agent/multi.js` |
 | Fault injection | `src/eval/faults.js` |
 | Impact and scale model | `src/eval/impact.js` |
+| Durable approval store | `src/store.js` |
 | Deterministic correlation | `src/correlate.js` |
 | The policy gate | `src/policy.js` |
 | Bedrock call + SigV4 | `src/agent/bedrock.js` |
@@ -437,8 +481,9 @@ src/eval/run.js     the benchmark and the release gate
 src/synth/          synthetic alert traffic with ground truth
 src/server.js       the console
 src/export.js       static export
+src/store.js        durable approvals (atomic writes; swap for DynamoDB)
 data/tenants/       one JSON file per customer environment
-tests/              69 tests
+tests/              75 tests
 .github/workflows/  CI: tests + the eval gate + the reviewer assertion
 ```
 
@@ -476,10 +521,11 @@ Newly created during the submission period. Full history is in this repository.
 - **SSM document names are plausible, not provisioned.** `AWS-RunShellScript` is real;
   `NightShift-RegionFailover` is an example name a customer would create. Nothing auto-executable
   depends on a document that does not exist.
-- **Ground truth is authored by the same person as the rules.** That is a real bias. An independent
-  labelled set, or a replay of anonymised production alerts, would be stronger evidence.
-- **Console state is in-memory.** Approvals do not survive a restart. Fine for a demo, not for
-  production; it needs a store before it is real.
+- **Ground truth is authored by the same person as the rules.** Partly addressed by the held-out
+  set above, which caught a real bug the training set could not. But I wrote that too. A replay of
+  anonymised production alerts, or someone else's labels, would be stronger evidence than either.
+- **The held-out set is small** — four scenarios, 140 alerts. It is enough to have found one serious
+  defect, not enough to claim generalisation.
 - **Flap detection is heuristic.** Alternating severity plus recovery keywords catches the common
   case and will miss exotic ones.
 

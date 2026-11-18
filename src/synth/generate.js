@@ -202,6 +202,111 @@ const SCENARIOS = {
   },
 };
 
+
+/**
+ * HELD-OUT SET.
+ *
+ * The limitation this answers: the rules and the ground truth above were
+ * written by the same person, so scoring well on them proves less than it
+ * looks. These scenarios are deliberately different — other services, other
+ * wording for the same underlying failures, and two failure classes the rules
+ * were never tuned for (certificate expiry, queue backlog).
+ *
+ * The rules were NOT adjusted after seeing these results. Whatever the
+ * generalisation number is, it is reported as it came out.
+ */
+const HOLDOUT = {
+  cert_expiry: {
+    id: "cert_expiry",
+    truth: "actionable",
+    why: "a certificate about to expire; unseen class, no rule was written for it",
+    service: "api-gateway",
+    build: ({ dayStart, r }) => {
+      const out = [];
+      const start = dayStart + (6 * 60 + 15) * 60_000;
+      const n = 2 + Math.floor(r() * 2);
+      for (let i = 0; i < n; i++) {
+        out.push({
+          source: "acm",
+          service: "api-gateway",
+          severity: "warning",
+          message: `TLS certificate for api.example.com expires in ${9 - i} days`,
+          at: iso(start + i * 3_600_000),
+        });
+      }
+      return out;
+    },
+  },
+
+  queue_backlog: {
+    id: "queue_backlog",
+    truth: "actionable",
+    why: "a queue growing faster than it drains; unseen class",
+    service: "job-queue",
+    build: ({ dayStart, r }) => {
+      const out = [];
+      const start = dayStart + (16 * 60 + 30) * 60_000;
+      const n = 4 + Math.floor(r() * 3);
+      for (let i = 0; i < n; i++) {
+        out.push({
+          source: "cloudwatch",
+          service: "job-queue",
+          severity: "warning",
+          message: `ApproximateAgeOfOldestMessage ${420 + i * 180} s on queue ingest-primary`,
+          at: iso(start + i * 420_000),
+        });
+      }
+      return out;
+    },
+  },
+
+  // Same underlying failure as the training set, described differently.
+  worker_crashloop: {
+    id: "worker_crashloop",
+    truth: "actionable",
+    why: "an availability failure phrased as a crash loop rather than 'connection refused'",
+    service: "report-worker",
+    build: ({ dayStart, r }) => {
+      const out = [];
+      const start = dayStart + (13 * 60 + 5) * 60_000;
+      const n = 5 + Math.floor(r() * 4);
+      for (let i = 0; i < n; i++) {
+        out.push({
+          source: "ecs",
+          service: "report-worker",
+          severity: "error",
+          message: `Task stopped with exit code 137, restarting (restart ${i + 1} in 10 minutes)`,
+          at: iso(start + i * 120_000),
+        });
+      }
+      return out;
+    },
+  },
+
+  // Noise phrased unlike anything in the training set.
+  verbose_debug_spam: {
+    id: "verbose_debug_spam",
+    truth: "noise",
+    why: "a debug logger left on at ERROR level after a deploy",
+    service: "report-worker",
+    build: ({ dayStart, r }) => {
+      const out = [];
+      const start = dayStart + (1 * 60 + 12) * 60_000;
+      const n = 25 + Math.floor(r() * 10);
+      for (let i = 0; i < n; i++) {
+        out.push({
+          source: "app",
+          service: "report-worker",
+          severity: "error",
+          message: `handler.dispatch() returned control to caller after ${12 + (i % 7)} ms`,
+          at: iso(start + i * 15_000),
+        });
+      }
+      return out;
+    },
+  },
+};
+
 export const scenarioTruth = () =>
   Object.fromEntries(Object.values(SCENARIOS).map((s) => [s.id, { truth: s.truth, why: s.why }]));
 
@@ -213,8 +318,10 @@ export const scenarioTruth = () =>
  * @param {number} [opts.seed]
  * @param {string} [opts.startDate]  ISO date, defaults to a fixed day so runs reproduce.
  * @param {string[]} [opts.only]     Restrict to certain scenario ids.
+ * @param {"train"|"holdout"} [opts.set]  Which scenario library to draw from.
  */
-export function generate({ tenantId, days = 3, seed = 20261211, startDate = "2026-12-01", only }) {
+export function generate({ tenantId, days = 3, seed = 20261211, startDate = "2026-12-01", only, set = "train" }) {
+  const LIBRARY = set === "holdout" ? HOLDOUT : SCENARIOS;
   const r = rng(seed);
   const base = Date.parse(`${startDate}T00:00:00.000Z`);
   /** @type {any[]} */
@@ -223,9 +330,9 @@ export function generate({ tenantId, days = 3, seed = 20261211, startDate = "202
 
   for (let d = 0; d < days; d++) {
     const dayStart = base + d * 86_400_000;
-    for (const key of Object.keys(SCENARIOS)) {
+    for (const key of Object.keys(LIBRARY)) {
       if (only && !only.includes(key)) continue;
-      const s = SCENARIOS[key];
+      const s = LIBRARY[key];
       for (const a of s.build({ dayStart, r })) {
         alerts.push({
           id: `al_${tenantId}_${d}_${n++}`,
