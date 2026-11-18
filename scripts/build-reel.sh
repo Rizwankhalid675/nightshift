@@ -118,7 +118,25 @@ done
 echo "  every shot renders"
 
 if [ "${1:-}" != "" ]; then
-  [ -f "$1" ] || { echo "narration file not found: $1" >&2; exit 1; }
+  if [ ! -f "$1" ]; then
+    echo "narration file not found: $1" >&2
+    case "$1" in
+      *path/to/*|*your-recording*|*yourvoice*)
+        cat >&2 <<'HINT'
+
+That is the placeholder from the instructions, not a file. Record the take first:
+
+  1. docs/reel-teleprompter.md is the script — 23 lines, about 2m34s of speaking.
+  2. Play video/nightshift_reel.mp4 and read along. First word when the FIRST
+     CAPTION appears at 0:03 — not over the title card.
+  3. QuickTime Player > File > New Audio Recording, one continuous take.
+     Save it, then pass that file's real path to this script.
+
+HINT
+        ;;
+    esac
+    exit 1
+  fi
   alen=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$1")
   awk -v a="$alen" -v w="$window" 'BEGIN{
     printf "  your take %.1fs   narration window %.1fs   drift %+.1fs\n", a, w, a-w
