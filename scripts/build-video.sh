@@ -56,7 +56,18 @@ echo "wrote $OUT/nightshift_silent.mp4"
 
 if [ "${1:-}" != "" ]; then
   [ -f "$1" ] || { echo "narration file not found: $1" >&2; exit 1; }
+  vlen=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$OUT/nightshift_silent.mp4")
+  alen=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$1")
+  awk -v v="$vlen" -v a="$alen" 'BEGIN{
+    printf "  picture %.1fs   narration %.1fs   drift %+.1fs\n", v, a, a-v
+    if (a > v + 0.5)      print "  narration runs past the picture — the tail will be cut"
+    else if (a < v - 5)   print "  narration ends early — padding the rest with silence"
+  }'
+  # apad before -shortest. With -shortest alone a narration shorter than the
+  # picture TRUNCATES THE PICTURE, silently losing the last beats. Padding the
+  # audio first means -shortest can only ever stop at the end of the video.
   ffmpeg -y -loglevel error -i "$OUT/nightshift_silent.mp4" -i "$1" \
+    -filter_complex "[1:a]apad[a]" -map 0:v -map "[a]" \
     -c:v copy -c:a aac -b:a 192k -shortest \
     "$OUT/nightshift_narrated.mp4"
   echo "wrote $OUT/nightshift_narrated.mp4"
