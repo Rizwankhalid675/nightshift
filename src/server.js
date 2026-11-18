@@ -80,7 +80,14 @@ th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.07em;
 td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:#1b222c}
-.pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;border:1px solid}
+/* nowrap: the gate column is narrow, and a wrapped label turns a pill with
+   border-radius:99px into a ragged lozenge. Keep labels on one line and let
+   the column size to them. */
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600;border:1px solid;white-space:nowrap}
+/* Gate and Remediation both hold short fixed tokens. Let them size to their
+   content so 'restart-service' does not break across lines at its hyphen;
+   the Diagnosis column absorbs the remaining width. */
+th:last-child,td:last-child,th:nth-last-child(2),td:nth-last-child(2){width:1%;white-space:nowrap}
 .p-auto{color:var(--ok);border-color:#1f4a2a;background:#0f2416}
 .p-hold{color:var(--warn);border-color:#4a3b12;background:#241d0f}
 .p-rej{color:var(--bad);border-color:#4a1f1f;background:#240f0f}
