@@ -38,13 +38,18 @@ being caught, with the run output on screen. Lead the back half with it, and do 
 | "Suppressed by the deterministic layer — never shown to the model" | same page, lower panel | per-incident reason text |
 | Incident detail | click any incident | evidence with sha256 per item, agent handoff table, gate reasons, receipt |
 | Tenant tabs | header: `northwind-msp` / `acme-retail` | same code, different rule pack |
-| **Live Bedrock run** | AWS CloudShell: `cd ~/ns && AWS_REGION=us-east-2 AGENT_PROVIDER=bedrock node src/eval/run.js` | the dissent line, live model |
+| **The dissent, live** | https://webrizz.dev/nightshift/ → any incident held for approval | `verdict=dissent · quoteVerified=false` and the gate reason |
+| **Live Bedrock run** (optional) | AWS CloudShell: `cd ~/ns && AWS_REGION=us-east-2 AGENT_PROVIDER=bedrock node src/eval/run.js` | the run producing those numbers |
 
-**Be careful with one thing.** The hosted console is built from the **offline** run — its footer
-says `offline:multi-agent-v1`, and it says so honestly. The live Bedrock output is the terminal
-shot. Do not narrate the hosted console as if it were live model output; the script below keeps
-them separate on purpose. (If you want the hosted console itself to show live Nova output, rebuild
-`dist/` from a Bedrock run and redeploy — then this caveat disappears.)
+**The hosted console is now live model output.** Its footer reads
+`bedrock:us.amazon.nova-pro-v1:0 (4 agents) · run 72a81c1b`, the diagnoses are Nova's own prose,
+and the dissent reasons are on the incident pages. You can narrate it as live, because it is.
+
+Two honest details to keep straight. The hosted pages are a **static snapshot** of a real Bedrock
+run, not inference on page load — say "this run" rather than "watch it call Bedrock now". And the
+hosted snapshot is a *different* run from the two in the README table (`72a81c1b`, not `537d1b89`),
+which is why it shows 1 auto-remediation where the README shows 3. Same model, same temperature 0,
+different run. If a judge asks, that variation is the honest answer and it is in the README.
 
 ---
 
@@ -58,7 +63,7 @@ Roughly 410 words at a normal pace. Read it; improvising always runs long.
 | **0:12–0:22** | "NightShift. Rules decide what deserves attention. Amazon Bedrock decides what is wrong and what to do. And deterministic code decides whether a robot is allowed to touch anything." | dashboard, six tiles |
 | **0:22–0:42** | "A hundred and seventeen of these alerts never reach the model at all. Seventy-one are a benign pattern the sync library logs at ERROR. Sixteen fall inside a nightly maintenance window. Thirty are one probe flapping. Every one of them says why, in writing — so suppression is auditable instead of magic." | suppressed panel, scroll the reasons |
 | **0:42–1:15** | "Here is one real incident. Four alerts, one payments outage. This is everything the model was shown — and nothing else. Every item is hashed. Four agents run in sequence: triage, diagnosis, remediation, and a reviewer whose only job is to disagree. The reviewer must quote the evidence to confirm anything. Then the gate holds it anyway: this tenant never opted restart-service into unattended execution, and the incident is customer-facing. Every decision leaves a receipt that re-verifies on load." | incident page — scroll evidence → handoff table → gate reasons → receipt |
-| **1:15–1:55** | "Now the part I did not plan. This is a live Bedrock run against a real AWS account. Look at why these actions were held back. The reviewer said *confirmed* — and supplied a quote that was not in the evidence. The model fabricated its own citation. Code checked the quote against the source, found it missing, and downgraded the verdict to a dissent, which costs the unattended path at the gate. That is the entire design working against a real model, not a claim about one." | CloudShell terminal: the run finishing, then highlight `reviewer confirmed but its supporting quote is not present in the evidence` |
+| **1:15–1:55** | "Now the part I did not plan. Everything you are looking at came from Amazon Nova on Bedrock — the footer names the model and the run. Open the payments outage and look at why it was held back. The reviewer said *confirmed* — and supplied a quote that was not in the evidence. The model fabricated its own citation. Code checked that quote against the source, found it missing, and downgraded the verdict to a dissent, which costs the unattended path at the gate. That is the entire design working against a real model, not a claim about one." | incident page: `verdict=dissent · quoteVerified=false`, then the gate reason `reviewer confirmed but its supporting quote is not present in the evidence`; footer model line |
 | **1:55–2:15** | "Measured, live, on two datasets. Ninety-four per cent of volume gone on the training set. Eighty-seven on a held-out set with services and failures no rule was written for. Zero wrong actions taken unattended. Zero real incidents missed. And on the unfamiliar data it automated less, not more — eleven per cent against twenty-five." | terminal: both summary blocks side by side |
 | **2:15–2:28** | "Same binary, different customer. A second tenant with its own rule pack, its own maintenance windows, its own idea of what a robot may do unsupervised. Nothing here is hardcoded to one environment." | click the `acme-retail` tab |
 | **2:28–2:45** | "The traffic is synthetic and seeded, so you can reproduce every number. Execution is dry-run by default. The limits are in the README, written before you asked. It is public, it is hosted, and it runs on your laptop with nothing but node." | README limits section, then the live URL on screen |
