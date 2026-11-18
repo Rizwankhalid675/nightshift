@@ -10,7 +10,7 @@
   "scripts": {
     "eval": "node src/eval/run.js",
     "eval:all": "node src/eval/all.js",
-    "test": "node --test tests/",
+    "test": "node --test tests/*.test.js",
     "demo:up": "node src/server.js",
     "demo:reset": "rm -rf runs && echo 'runs cleared'",
     "compare": "node src/eval/compare.js",

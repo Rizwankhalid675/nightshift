@@ -13,12 +13,20 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # package.json says engines.node >= 20, so both ends of that claim get
+    # tested. This matrix is not decoration: "node --test tests/" scanned the
+    # directory on 20 and resolved it as a module on 22, so the whole suite
+    # failed to load on a version the package said it supported.
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ["20", "22"]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: ${{ matrix.node-version }}
 
       - name: No dependencies to install
         run: test ! -s package-lock.json || echo "lockfile present but empty of deps"
