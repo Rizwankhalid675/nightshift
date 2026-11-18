@@ -45,12 +45,12 @@ gh repo create nightshift --public --source=. --push
 
 ## Open questions you may want to decide
 
-- **Anthropic models are not available on AWS account `<aws-account-redacted>`.** `anthropic.claude-sonnet-5`
+- **Anthropic models are not available on the AWS account this ran in.** `anthropic.claude-sonnet-5`
   returns `AccessDeniedException: not available for this account`, and the account is on a
   region-locked plan (us-east-2) inside an organization whose service control policy denies
   `bedrock:GetUseCaseForModelAccess`. Amazon Nova works fine and is arguably the better story for an
   AWS hackathon. If you want Claude numbers too, that needs enabling at the org management account
-  (`287898556793`), which is not this account.
+  for the organization, which is a different account from this one.
 - **Nothing has run against live Systems Manager.** The executor still composes, signs and polls
   real SSM calls in `dry-run`. Now that signing is fixed and credentials resolve properly, a live
   SSM run is mostly a matter of having a tagged instance to point at.
