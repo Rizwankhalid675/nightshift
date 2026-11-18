@@ -33,7 +33,7 @@ Four criteria, 25% each.
 
 | Criterion | How we meet it | Where |
 |---|---|---|
-| **Technological Implementation** | Bedrock in the live path, signed from scratch with zero dependencies. Around it: a pure-function correlation engine, a nine-rule policy gate, tamper-evident evidence receipts, four specialist Bedrock agents with an adversarial reviewer, a two-tenant benchmark, a Systems Manager execution layer that re-authorises independently, and **69 passing tests** including fault-injection ones. | [§1](#1-technological-implementation) |
+| **Technological Implementation** | Bedrock in the live path, signed from scratch with zero dependencies. Around it: a pure-function correlation engine, a eleven-rule policy gate, tamper-evident evidence receipts, four specialist Bedrock agents with an adversarial reviewer, a two-tenant benchmark, a Systems Manager execution layer that re-authorises independently, and **84 passing tests** including fault-injection ones. | [§1](#1-technological-implementation) |
 | **Design** | The whole on-call loop in one console: what came in, what was suppressed and why, what the model proposed, what the gate decided, what a human still owes. Multi-tenant from the contracts up — **onboarding a customer is writing a JSON rule pack, not editing code**. | [§2](#2-design) |
 | **Potential Impact** | A reproducible benchmark with a published baseline: **94.1% of alert volume removed, with zero real incidents missed**. Every number regenerates from `npm run eval`. | [§3](#3-potential-impact) |
 | **Innovation / Idea** | The novelty is *where the model sits*. It proposes; code decides. A proposal that cites evidence it was never shown is rejected automatically, and nothing irreversible ever runs unattended. | [§4](#4-innovation--idea) |
@@ -160,15 +160,80 @@ numbers so the README cannot silently drift from the code.
 
 ---
 
+## Measured against live Bedrock
+
+Run on 18 November 2026 in `us-east-2`, against `us.amazon.nova-pro-v1:0` through the Converse API,
+on an AWS CloudShell task role with **no static credentials anywhere**. Both datasets, one run each,
+temperature 0. Raw run files are written to `runs/` by `npm run eval`.
+
+| | Training set | Held-out set |
+|---|---|---|
+| Run id | `537d1b89` | `8dd203c7` |
+| Alerts in | 203 | 140 |
+| Incidents after correlation | 21 | 18 |
+| Actionable (paged) | 12 | 18 |
+| Reduction, alerts → pages | **94.1%** | **87.1%** |
+| Auto-remediated | 3 | 2 |
+| Held for human approval | 9 | 16 |
+| Reviewer dissents | 9 | 15 |
+| Degraded to single agent | 1 | 1 |
+| Median time to proposal | 9,169 ms | 9,059 ms |
+| **False auto-remediations** | **0** | **0** |
+| **Missed real incidents** | **0** | **0** |
+
+Three things in that table are worth more than the headline percentage.
+
+**The reviewer caught the model citing evidence that did not exist.** The most common reason an
+action was held back reads, verbatim from the run:
+
+> `reviewer dissented: reviewer confirmed but its supporting quote is not present in the evidence`
+
+The reviewer agent said "confirmed" and supplied a quote to justify it. `quoteIsReal()` checked that
+quote against the source evidence — the alerts and the runbook, never another agent's output — and
+it was not there. The model fabricated a citation and deterministic code caught it and downgraded
+the verdict to a dissent, which costs the unattended path at the gate. That is the entire thesis of
+this project happening against a real model rather than being asserted about one.
+
+**Automation falls on unfamiliar traffic.** 3 of 12 actionable incidents auto-remediated on the
+training set (25%); 2 of 18 on the held-out set (11%). The held-out set uses different services,
+different wording and two failure classes no rule was written for. The system became *more*
+cautious where it knew less, which is the behaviour the confidence floor and the reviewer exist to
+produce — and it did so with a live model, not a rules baseline.
+
+**Both safety numbers are zero on data the rules never saw.** Zero wrong actions taken unattended,
+zero real incidents suppressed. `npm run eval` exits non-zero if either moves, and CI runs it.
+
+### What the live run found that no amount of local testing had
+
+Running against real AWS immediately exposed three defects that 75 passing tests had not, each now
+fixed and covered by a regression test:
+
+1. **SigV4 signed the wrong path.** AWS URI-encodes every path segment *twice* in the canonical
+   request for every service except S3. The client signed the singly-encoded path, so every Bedrock
+   call returned `403 The request signature we calculated does not match`. It had gone unnoticed
+   because Systems Manager signs path `/`, where both forms are identical — only a model id
+   containing a colon, which is every current inference profile, exposes it.
+2. **Temporary credentials were captured once and held.** A run began fine and then lost 12 agent
+   turns to `The security token included in the request is expired`. Credentials are now resolved
+   per request, from the environment and then the container endpoint, and refreshed before expiry.
+3. **A benchmark flag was silently ignored.** `--set=holdout` was dropped by a parser that only
+   understood `--set holdout`, so a run intended to measure held-out traffic measured the training
+   set and labelled itself `train`. Unknown flags are now refused rather than ignored.
+
+A fourth defect was a published number that could not be true: the run report printed
+`Did not recur 4/3`, because verified resolutions were counted over every result while executions
+excluded refused and no-op ones. Same population now, and a test asserts the ratio can never invert.
+
 ### AWS deep dive
 
-Everything AWS this project touches, where it lives, and — importantly — what has and has not run
-against a live account.
+Everything AWS this project touches, where it lives, and what has — and has not — run against a
+live account.
 
 | AWS surface | What it does here | File | Status |
 |---|---|---|---|
-| **Bedrock `InvokeModel`** | the four specialists: triage, diagnosis, remediation, review | [`src/agent/bedrock.js`](src/agent/bedrock.js), [`src/agent/multi.js`](src/agent/multi.js) | implemented, signed, **not yet run live** |
-| **SigV4** | request signing, written in `node:crypto` — no SDK | [`src/aws/sigv4.js`](src/aws/sigv4.js) | implemented, shared by both clients |
+| **Bedrock `Converse`** | the four specialists: triage, diagnosis, remediation, review | [`src/agent/bedrock.js`](src/agent/bedrock.js), [`src/agent/multi.js`](src/agent/multi.js) | **run live** — see [Measured against live Bedrock](#measured-against-live-bedrock) |
+| **SigV4** | request signing, written in `node:crypto` — no SDK | [`src/aws/sigv4.js`](src/aws/sigv4.js) | **run live**, shared by both clients |
+| **Credential chain** | environment variables, then the container endpoint (ECS/Fargate/CloudShell), refreshed before expiry | [`src/aws/sigv4.js`](src/aws/sigv4.js) | **run live** on a task role with no static keys |
 | **Systems Manager `SendCommand`** | run a document against tagged instances (rotate logs, re-run a batch) | [`src/execute/ssm.js`](src/execute/ssm.js) | implemented, polled to terminal state, **dry-run only** |
 | **SSM `StartAutomationExecution`** | runbook-style remediations (restart a service, scale out) | [`src/execute/ssm.js`](src/execute/ssm.js) | implemented, **dry-run only** |
 | **SSM `GetCommandInvocation` / `GetAutomationExecution`** | poll to a terminal state, because "sent" is not "worked" | [`src/execute/ssm.js`](src/execute/ssm.js) | implemented |
@@ -177,7 +242,7 @@ Why no AWS SDK: the whole project installs nothing. A judge clones it and runs i
 nothing else — no lockfile resolution, no transitive dependency that broke this week. Signing is
 ~60 lines and shared, so there is one implementation to audit rather than one per service.
 
-IAM policy needed to run it live:
+Minimum IAM policy to run it live — `bedrock:InvokeModel` is the permission the Converse API checks:
 
 ```json
 {"Version":"2012-10-17","Statement":[
@@ -185,6 +250,12 @@ IAM policy needed to run it live:
   {"Effect":"Allow","Action":["ssm:SendCommand","ssm:GetCommandInvocation",
     "ssm:StartAutomationExecution","ssm:GetAutomationExecution"],"Resource":"*"}]}
 ```
+
+[`docs/iam-policy.json`](docs/iam-policy.json) is the tighter version worth deploying: Bedrock
+scoped to Anthropic and Nova inference profiles, and Systems Manager scoped to instances carrying a
+`nightshift-managed` tag, so the agent cannot reach an instance nobody opted in. It is written and
+reviewed but not yet exercised against live SSM, so the permissive policy above is what the live
+Bedrock run actually used.
 
 ## 2. Design
 
@@ -224,8 +295,11 @@ survive it reach a model:
 | Prompt characters (measured) | 94,024 | ~397,000 |
 | Estimated input cost @ $3/Mtok | **$0.07** | $0.30 |
 
-Reproduce with `npm run impact`. The token figures are an estimate from measured character counts,
-not an invoice — no live Bedrock call has been made.
+Reproduce with `npm run impact`. Those token figures are an estimate from measured character
+counts. The live runs now report tokens from Bedrock itself: **89,354 in / 24,608 out** across 94
+agent turns for the 12 actionable incidents in the training set (~9,500 tokens per incident), and
+**119,242 in / 35,194 out** across 142 turns for the 18 held-out incidents (~8,600 per incident).
+Those are counts, not costs — multiply by whatever the model charges on the day.
 
 The ratio holds as volume grows, because suppression happens before inference, not after. Nothing
 is held in process memory between incidents except the idempotency ledger, so the server scales
@@ -385,7 +459,7 @@ No AWS account, no credentials, no network, no `npm install`. Node 20+ only.
 
 ```bash
 git clone <this repo> && cd nightshift
-npm test                                      # 75 tests
+npm test                                      # 84 tests
 npm run eval                                  # the benchmark, offline baseline
 node src/eval/run.js --tenant acme-retail     # the second tenant
 node src/eval/run.js --mode single            # one agent instead of four
@@ -402,10 +476,14 @@ EXECUTOR_MODE=live AWS_ACCESS_KEY_ID=... npm run eval
 With Bedrock:
 
 ```bash
-export AWS_ACCESS_KEY_ID=...  AWS_SECRET_ACCESS_KEY=...  AWS_REGION=us-east-1
-export BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20240620-v1:0
-AGENT_PROVIDER=bedrock npm run eval
+export AWS_REGION=us-east-2
+export BEDROCK_MODEL_ID=us.amazon.nova-pro-v1:0   # an inference profile id, not a bare model id
+AGENT_PROVIDER=bedrock npm run eval               # add --set holdout for the held-out set
 ```
+
+No `AWS_ACCESS_KEY_ID` line: credentials resolve from the environment first and then from the
+container endpoint, so on ECS, Fargate or CloudShell the task role is enough and nothing static is
+stored. Both live runs below were produced that way.
 
 The offline provider is the **published baseline**, not a mock of Bedrock: the eval runs the same
 benchmark through either provider so the model's contribution can be measured rather than asserted.
@@ -416,7 +494,7 @@ benchmark through either provider so the model's contribution can be measured ra
 
 | Step | Fails the build when |
 |---|---|
-| `npm test` | any of the 69 tests break |
+| `npm test` | any of the 84 tests break |
 | eval, Northwind + Acme | a real incident is suppressed, or a wrong action auto-runs |
 | eval, **held-out traffic** | the safety numbers stop holding on data the rules never saw |
 | eval, single-agent baseline | the baseline regresses |
@@ -486,7 +564,7 @@ src/server.js       the console
 src/export.js       static export
 src/store.js        durable approvals (atomic writes; swap for DynamoDB)
 data/tenants/       one JSON file per customer environment
-tests/              75 tests
+tests/              84 tests
 .github/workflows/  CI: tests + the eval gate + the reviewer assertion
 ```
 
@@ -507,10 +585,14 @@ Newly created during the submission period. Full history is in this repository.
   is catching wrong actions, which only shows up under fault injection. Four model calls per
   incident instead of one is a real cost, and on this benchmark it buys exactly one thing.
 
-- **The published numbers are from the offline baseline, not Bedrock.** The Bedrock path is
-  implemented and signed, but it has not yet been run against a live AWS account, so no
-  Bedrock-measured figure is claimed anywhere in this README. When it runs, the comparison table
-  gets a second row and this note changes.
+- **The live model was Amazon Nova Pro, not Claude.** The account this ran in has Anthropic models
+  disabled (`AccessDeniedException: anthropic.claude-sonnet-5 is not available for this account`),
+  so the live figures come from `us.amazon.nova-pro-v1:0`. Because the client speaks Bedrock's
+  Converse API, the model is one environment variable — but no Claude-measured number is claimed
+  here, and a different family could behave differently.
+- **Two runs is not a sample.** The live figures below are one run per dataset at temperature 0.
+  They are a demonstration that the path works end to end and that the gate holds, not a
+  statistical claim about model quality.
 - **The traffic is synthetic.** Every alert is generated by `src/synth/generate.js` from common MSP
   failure patterns. No customer, employer or production data appears anywhere in this repository.
   Seeded, so the numbers reproduce — but a synthetic benchmark is a demonstration of method, not a

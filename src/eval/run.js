@@ -22,10 +22,38 @@ import { receipt } from "../receipts.js";
 import { generate, stripTruth, truthIndex } from "../synth/generate.js";
 import { execute, Ledger, verifyResolution, recordVerification, MODE } from "../execute/index.js";
 
-const arg = (name, dflt) => {
-  const i = process.argv.indexOf(`--${name}`);
-  return i > -1 ? process.argv[i + 1] : dflt;
+/** Flags this script understands. Anything else is a typo worth shouting about. */
+export const KNOWN_FLAGS = ["tenant", "mode", "inject", "set", "provider", "days"];
+export const DATASETS = ["train", "holdout"];
+
+/** Accepts both `--set holdout` and `--set=holdout`. */
+export const parseFlag = (argv, name, dflt) => {
+  const eq = argv.find((a) => a.startsWith(`--${name}=`));
+  if (eq) return eq.slice(name.length + 3);
+  const i = argv.indexOf(`--${name}`);
+  return i > -1 ? argv[i + 1] : dflt;
 };
+
+/**
+ * Reject unknown flags instead of ignoring them.
+ *
+ * This is not pedantry. `--set=holdout` was silently dropped by a parser that
+ * only understood `--set holdout`, so a run that was meant to measure held-out
+ * traffic quietly measured the training set and labelled itself "train". A
+ * benchmark that ignores the flag naming its dataset will publish the wrong
+ * number without ever looking wrong.
+ */
+export function assertKnownFlags(argv, known = KNOWN_FLAGS) {
+  for (const a of argv) {
+    if (!a.startsWith("--")) continue;
+    const name = a.slice(2).split("=")[0];
+    if (!known.includes(name)) {
+      throw new Error(`Unknown flag --${name}. Known flags: ${known.map((k) => `--${k}`).join(", ")}`);
+    }
+  }
+}
+
+const arg = (name, dflt) => parseFlag(process.argv, name, dflt);
 
 const median = (xs) => {
   if (!xs.length) return 0;
@@ -110,6 +138,8 @@ export async function runEval({ tenantId, provider, days = 3, seed = 20261211, a
   ).length;
 
   /** @type {import("../../contracts.js").RunMetrics} */
+  /** An execution that actually touched something: not refused, not a no-op. */
+  const didExecute = (r) => r.execution && !["refused", "no_action"].includes(r.execution.status);
   const metrics = {
     runId: randomUUID().slice(0, 8),
     tenantId,
@@ -123,9 +153,13 @@ export async function runEval({ tenantId, provider, days = 3, seed = 20261211, a
     falseAutoRemediations,
     missedActionable,
     medianTimeToProposalMs: median(timings),
-    executed: results.filter((r) => r.execution && !["refused", "no_action"].includes(r.execution.status)).length,
+    executed: results.filter(didExecute).length,
     executionRefused: results.filter((r) => r.execution?.status === "refused").length,
-    verifiedResolved: results.filter((r) => r.execution?.verification?.resolved).length,
+    // Counted over the SAME population as `executed`. Counting every result
+    // with a verification record instead put ticket-only outcomes in the
+    // numerator, and a live run duly reported "4/3" resolutions out of
+    // executions — a ratio that cannot happen.
+    verifiedResolved: results.filter((r) => didExecute(r) && r.execution.verification?.resolved).length,
     executorMode: execMode,
     agentMode: mode,
     injectedFault: inject || "none",
@@ -185,10 +219,12 @@ function printReport({ metrics, results, incidents }) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
+  assertKnownFlags(process.argv.slice(2));
   const tenantId = arg("tenant", "northwind-msp");
   const agentMode = arg("mode", process.env.AGENT_MODE || "multi");
   const inject = arg("inject", "none");
   const set = arg("set", "train");
+  if (!DATASETS.includes(set)) throw new Error(`Unknown --set "${set}". Use one of: ${DATASETS.join(", ")}`);
   const provider = arg("provider", process.env.AGENT_PROVIDER || "offline");
   const days = Number(arg("days", "3"));
 

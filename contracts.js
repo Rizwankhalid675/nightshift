@@ -171,6 +171,21 @@ export const maxSeverity = (a, b) => (SEVERITY_RANK[a] >= SEVERITY_RANK[b] ? a :
  * @property {string} model
  */
 
+/**
+ * One specialist's turn in the multi-agent pipeline. Recorded whether it
+ * succeeded or not: a failed turn is how a degraded run proves it degraded.
+ * @typedef {Object} AgentTurn
+ * @property {string} role       "triage" | "diagnosis" | "remediation" | "reviewer"
+ * @property {string} model      "offline:rules-v1" or "bedrock:<inference-profile-id>"
+ * @property {number} ms
+ * @property {boolean} ok
+ * @property {object|null} output
+ * @property {string} [error]
+ * @property {{inputTokens:number, outputTokens:number}} [tokens]
+ *           Reported by Bedrock itself, so cost per incident is measured rather
+ *           than estimated. Absent on offline turns, which cost nothing.
+ */
+
 // -------------------------------------------------------------------- guards
 
 /** @param {unknown} a @returns {a is Alert} */
@@ -200,4 +215,4 @@ export function assertRulePack(p) {
   return p;
 }
 
-export const CONTRACT_VERSION = "1.2.0";
+export const CONTRACT_VERSION = "1.3.0";

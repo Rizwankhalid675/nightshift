@@ -15,18 +15,110 @@ function signingKey(secret, date, region, service) {
   return hmac(hmac(hmac(hmac(`AWS4${secret}`, date), region), service), "aws4_request");
 }
 
-/** Reads the standard AWS environment variables. Throws a useful message if absent. */
-export function credentials(forWhat = "AWS") {
+/**
+ * Credential resolution, in the order the AWS SDKs use.
+ *
+ * 1. Environment variables, read fresh on every call.
+ * 2. The container credential endpoint (ECS, Fargate, CloudShell), cached
+ *    until shortly before it expires and then fetched again.
+ *
+ * Step 2 exists because of a real failure: a long evaluation run signed its
+ * first requests fine and then collapsed with "The security token included in
+ * the request is expired" — 12 agent turns lost — because it was holding a
+ * copy of temporary credentials that had aged out mid-run. Anything that runs
+ * for minutes against AWS has to be able to pick up refreshed credentials, and
+ * on a task role that is exactly what this endpoint provides.
+ */
+
+/** @type {{accessKeyId:string, secretAccessKey:string, sessionToken?:string, expiresAt:number|null}|null} */
+let containerCache = null;
+
+/** Refresh this long before stated expiry, so an in-flight request cannot age out. */
+const REFRESH_MARGIN_MS = 5 * 60_000;
+
+function fromEnvironment() {
   const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
   const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-  if (!accessKeyId || !secretAccessKey) {
+  if (!accessKeyId || !secretAccessKey) return null;
+  return { accessKeyId, secretAccessKey, sessionToken: process.env.AWS_SESSION_TOKEN, expiresAt: null };
+}
+
+async function fromContainerEndpoint() {
+  const full = process.env.AWS_CONTAINER_CREDENTIALS_FULL_URI;
+  const relative = process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI;
+  if (!full && !relative) return null;
+
+  if (containerCache && containerCache.expiresAt && Date.now() < containerCache.expiresAt - REFRESH_MARGIN_MS) {
+    return containerCache;
+  }
+
+  const url = full || `http://169.254.170.2${relative}`;
+  /** @type {Record<string,string>} */
+  const headers = {};
+  const token = process.env.AWS_CONTAINER_AUTHORIZATION_TOKEN;
+  if (token) headers.Authorization = token;
+
+  const res = await fetch(url, { headers });
+  if (!res.ok) throw new Error(`Container credential endpoint returned ${res.status}`);
+  const json = await res.json();
+  if (!json.AccessKeyId || !json.SecretAccessKey) {
+    throw new Error("Container credential endpoint returned no key pair");
+  }
+  containerCache = {
+    accessKeyId: json.AccessKeyId,
+    secretAccessKey: json.SecretAccessKey,
+    sessionToken: json.Token,
+    expiresAt: json.Expiration ? Date.parse(json.Expiration) : null,
+  };
+  return containerCache;
+}
+
+/**
+ * Resolve credentials, or throw a message that says what to do about it.
+ * @param {string} [forWhat]
+ */
+export async function resolveCredentials(forWhat = "AWS") {
+  const found = fromEnvironment() || (await fromContainerEndpoint());
+  if (!found) {
     throw new Error(
       `No AWS credentials in the environment for ${forWhat}. ` +
         "Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, or keep EXECUTOR_MODE=dry-run."
     );
   }
-  return { accessKeyId, secretAccessKey, sessionToken: process.env.AWS_SESSION_TOKEN };
+  return found;
 }
+
+/** Test seam: forget any cached container credentials. */
+export const forgetCachedCredentials = () => {
+  containerCache = null;
+};
+
+
+/**
+ * The canonical URI for SigV4.
+ *
+ * AWS canonicalisation URI-encodes every path segment **twice** for every
+ * service except S3, while the wire request carries the singly-encoded form.
+ * With a path of "/" the two are identical, which is why the Systems Manager
+ * client signed correctly from the first day and this went unnoticed. It bites
+ * the moment a segment contains a character that needs encoding — such as the
+ * colon in a Bedrock inference profile id ("us.amazon.nova-pro-v1:0"), where a
+ * wire path of ...v1%3A0 must be signed as ...v1%253A0.
+ *
+ * Found by a real 403 from Bedrock, not by reading the code.
+ *
+ * @param {string} path Already URI-encoded request path.
+ */
+export const canonicalUri = (path) =>
+  path
+    .split("/")
+    .map((seg) =>
+      encodeURIComponent(seg).replace(
+        /[!'()*]/g,
+        (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`
+      )
+    )
+    .join("/");
 
 /**
  * Sign and send one request.
@@ -40,8 +132,8 @@ export function credentials(forWhat = "AWS") {
  * @param {number} [o.timeoutMs]
  * @returns {Promise<{status:number, body:string}>}
  */
-export function signedRequest({ service, host, path, payload, region, extraHeaders = {}, timeoutMs = 30_000 }) {
-  const { accessKeyId, secretAccessKey, sessionToken } = credentials(service);
+export async function signedRequest({ service, host, path, payload, region, extraHeaders = {}, timeoutMs = 30_000 }) {
+  const { accessKeyId, secretAccessKey, sessionToken } = await resolveCredentials(service);
 
   const now = new Date();
   const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
@@ -60,7 +152,7 @@ export function signedRequest({ service, host, path, payload, region, extraHeade
   const signedHeaders = names.join(";");
   const canonicalHeaders = names.map((k) => `${k}:${String(headers[k]).trim()}\n`).join("");
 
-  const canonicalRequest = ["POST", path, "", canonicalHeaders, signedHeaders, sha256hex(payload)].join("\n");
+  const canonicalRequest = ["POST", canonicalUri(path), "", canonicalHeaders, signedHeaders, sha256hex(payload)].join("\n");
   const scope = `${dateStamp}/${region}/${service}/aws4_request`;
   const stringToSign = ["AWS4-HMAC-SHA256", amzDate, scope, sha256hex(canonicalRequest)].join("\n");
   const signature = createHmac("sha256", signingKey(secretAccessKey, dateStamp, region, service))

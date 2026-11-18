@@ -1,0 +1,36 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "InvokeAnthropicOnBedrock",
+      "Effect": "Allow",
+      "Action": "bedrock:InvokeModel",
+      "Resource": [
+        "arn:aws:bedrock:*::foundation-model/anthropic.*",
+        "arn:aws:bedrock:*:*:inference-profile/*anthropic.*"
+      ]
+    },
+    {
+      "Sid": "RemediateViaSystemsManagerOnly",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:SendCommand",
+        "ssm:GetCommandInvocation",
+        "ssm:StartAutomationExecution",
+        "ssm:GetAutomationExecution"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/nightshift-managed": "true"
+        }
+      }
+    },
+    {
+      "Sid": "AllowOnlyTheRunbookDocuments",
+      "Effect": "Allow",
+      "Action": "ssm:SendCommand",
+      "Resource": "arn:aws:ssm:*:*:document/AWS-RunShellScript"
+    }
+  ]
+}

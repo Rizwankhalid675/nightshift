@@ -14,10 +14,13 @@
  * the README can show what the model adds over rules alone instead of asserting it.
  */
 import { evidence } from "../receipts.js";
-import { invokeModel, anthropicBody, extractText } from "./bedrock.js";
+import { converse, converseText } from "./bedrock.js";
 import { applyFault } from "../eval/faults.js";
 
-export const DEFAULT_MODEL = process.env.BEDROCK_MODEL_ID || "anthropic.claude-3-5-sonnet-20240620-v1:0";
+// An inference profile id, not a bare foundation-model id: current Bedrock
+// models are served cross-region and reject the bare form. Override with
+// BEDROCK_MODEL_ID to run any other family — Converse keeps the call identical.
+export const DEFAULT_MODEL = process.env.BEDROCK_MODEL_ID || "us.amazon.nova-pro-v1:0";
 
 /**
  * Build the evidence bundle for an incident. This is the ONLY thing the model
@@ -155,8 +158,8 @@ export async function propose(incident, pack, opts = {}) {
   }
   if (provider !== "bedrock") throw new Error(`Unknown AGENT_PROVIDER "${provider}" (use bedrock or offline)`);
 
-  const res = await invokeModel({ modelId, body: anthropicBody(PROMPT(incident, shown)) });
-  const proposal = parseProposal(extractText(res), incident, modelId);
+  const res = await converse({ modelId, prompt: PROMPT(incident, shown) });
+  const proposal = parseProposal(converseText(res), incident, modelId);
   if (opts.inject) proposal.remediationId = applyFault(opts.inject, proposal.remediationId, pack);
   return { proposal, shown, ms: Date.now() - t0 };
 }

@@ -17,7 +17,7 @@
  * bad night is not an on-call system.
  */
 import { evidence } from "../receipts.js";
-import { invokeModel, anthropicBody, extractText } from "./bedrock.js";
+import { converse, converseText, converseUsage } from "./bedrock.js";
 import { buildEvidence, offlineProposer, DEFAULT_MODEL } from "./index.js";
 import {
   PROMPTS, offlineTriage, offlineDiagnosis, offlineRemediation, offlineReviewer, quoteIsReal,
@@ -42,9 +42,10 @@ async function turn({ role, prompt, offline, provider, modelId }) {
     return { out, turn: { role, model: "offline:rules-v1", ms: Date.now() - t0, ok: true, output: out } };
   }
   try {
-    const res = await invokeModel({ modelId, body: anthropicBody(prompt) });
-    const out = parseJson(extractText(res), role);
-    return { out, turn: { role, model: `bedrock:${modelId}`, ms: Date.now() - t0, ok: true, output: out } };
+    const res = await converse({ modelId, prompt });
+    const out = parseJson(converseText(res), role);
+    // Tokens come from the service, so cost per incident is measured, not estimated.
+    return { out, turn: { role, model: `bedrock:${modelId}`, ms: Date.now() - t0, ok: true, output: out, tokens: converseUsage(res) } };
   } catch (err) {
     return {
       out: null,
