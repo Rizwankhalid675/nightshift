@@ -36,7 +36,15 @@ cd aws-msp-hackathon
 gh repo create nightshift --public --source=. --push
 ```
 
-### 4. Host it
+### 4. ~~Host it~~ DONE — https://webrizz.dev/nightshift/
+
+Static export deployed to a `nightshift/` folder under your portfolio domain. The portfolio root is
+untouched. To redeploy after a change: `npm run build:static`, then replace the files in
+`public_html/nightshift/` (delete first — the file manager silently skips same-name overwrites).
+
+Original notes below.
+
+### 4b. Hosting options
 "A working, publicly hosted AI solution" is a hard requirement. Cheapest paths:
 
 Both configs are already committed, so this is a few clicks:

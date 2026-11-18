@@ -49,8 +49,8 @@ form{display:inline}
     <p><a href="./index-acme-retail.html">&larr; all incidents</a></p>
     <div class="card">
       <h2>billing-api · warning · 5 alerts collapsed into one incident</h2>
-      <p>A scheduled batch on billing-api is failing repeatedly and not self-recovering.</p>
-      <p class="mono">root cause hypothesis: A scheduled batch on billing-api is failing repeatedly and not self-recovering.</p>
+      <p>billing-api is alerting repeatedly, but the evidence does not identify a specific cause.</p>
+      <p class="mono">root cause hypothesis: billing-api is alerting repeatedly, but the evidence does not identify a specific cause. (gaps: No metric or trace evidence, only alert text.)</p>
     </div>
 
     <div class="card"><h2>What the model was shown — and nothing else</h2>
@@ -62,34 +62,34 @@ window=2026-12-03T03:02:00.000Z..2026-12-03T03:04:40.000Z
 [2026-12-03T03:04:00.000Z] WARNING Service billing-api restarted, 0 healthy targets for 12 s
 [2026-12-03T03:04:40.000Z] WARNING Service billing-api restarted, 0 healthy targets for 12 s</pre><p class="mono">runbook from tenant:acme-retail · sha256 2cd972a3fcb7</p><pre>open-ticket: Open a ticket for a human, take no action (reversible=true, blast=low)
 rerun-failed-batch: Re-run the failed sync batch once (reversible=true, blast=low)
-restart-service: Rolling restart of the affected service (reversible=true, blast=medium)</pre><p class="mono">prior_incident from correlator:inc_c1c0537797fd0cbe · sha256 47cd6811503b</p><pre>5 alerts collapsed into one incident</pre><p class="mono">triage from agent:triage · sha256 42b55b2d05a1</p><pre>category=job_failure urgency=low
-billing-api: 5 alerts in one window, classified job_failure.</pre><p class="mono">diagnosis from agent:diagnosis · sha256 c7a74b4c0d97</p><pre>rootCause=A scheduled batch on billing-api is failing repeatedly and not self-recovering.
-confidence=0.82
-gaps=none</pre><p class="mono">review from agent:reviewer · sha256 4bf92d75ce72</p><pre>verdict=confirm quoteVerified=true
-the evidence supports the diagnosis and &quot;rerun-failed-batch&quot; addresses it</pre>
+restart-service: Rolling restart of the affected service (reversible=true, blast=medium)</pre><p class="mono">prior_incident from correlator:inc_c1c0537797fd0cbe · sha256 47cd6811503b</p><pre>5 alerts collapsed into one incident</pre><p class="mono">triage from agent:triage · sha256 cbf1d0eddd8f</p><pre>category=unknown urgency=low
+billing-api: 5 alerts in one window, classified unknown.</pre><p class="mono">diagnosis from agent:diagnosis · sha256 b12d5c504b64</p><pre>rootCause=billing-api is alerting repeatedly, but the evidence does not identify a specific cause.
+confidence=0.4
+gaps=No metric or trace evidence, only alert text.</pre><p class="mono">review from agent:reviewer · sha256 173a0ffd9e0d</p><pre>verdict=dissent quoteVerified=false
+no line in the evidence directly supports the stated root cause</pre>
     </div>
 
     <div class="card"><h2>Agent handoff</h2>
       
       <table><tr><th>Agent</th><th>Said</th><th>Model</th></tr>
-      <tr><td><strong>triage</strong></td><td>job_failure · urgency low</td>
-          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>diagnosis</strong></td><td>A scheduled batch on billing-api is failing repeatedly and not self-recovering. (confidence 0.82)</td>
-          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>remediation</strong></td><td>rerun-failed-batch — job_failure incidents on billing-api are addressed by &quot;rerun-failed-batch&quot; in this tenant&#39;s runbook.</td>
-          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>reviewer</strong></td><td>confirm: the evidence supports the diagnosis and &quot;rerun-failed-batch&quot; addresses it</td>
+      <tr><td><strong>triage</strong></td><td>unknown · urgency low</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>diagnosis</strong></td><td>billing-api is alerting repeatedly, but the evidence does not identify a specific cause. (confidence 0.4) · gaps: No metric or trace evidence, only alert text.</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>remediation</strong></td><td>open-ticket — unknown incidents on billing-api are addressed by &quot;open-ticket&quot; in this tenant&#39;s runbook.</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>reviewer</strong></td><td>dissent: no line in the evidence directly supports the stated root cause</td>
           <td class="mono">offline:rules-v1 · 0ms</td></tr>
       </table>
-      <p style="margin-top:12px">Reviewer <span class="pill p-auto">confirm</span> the evidence supports the diagnosis and &quot;rerun-failed-batch&quot; addresses it</p>
-      <p class="mono">supporting quote, verified present in the source evidence:</p><pre>rerun-failed-batch: Re-run the failed sync batch once (reversible=true, blast=low)</pre>
+      <p style="margin-top:12px">Reviewer <span class="pill p-hold">dissent</span> no line in the evidence directly supports the stated root cause</p>
+      <p class="mono">no verified supporting quote — this is why it did not confirm</p>
     </div>
 
     <div class="card"><h2>Proposal</h2>
-      <p class="mono">model offline:multi-agent-v1 · self-reported confidence 0.82</p>
-      <p>Proposed remediation: <span class="mono">rerun-failed-batch</span></p>
+      <p class="mono">model offline:multi-agent-v1 · self-reported confidence 0.40</p>
+      <p>Proposed remediation: <span class="mono">open-ticket</span></p>
       <p class="mono">citations verified against the evidence shown: yes</p>
     </div>
 
     <div class="card"><h2>Gate decision <span class="pill p-hold">needs approval</span></h2>
-      <ul class="reasons"><li>tenant has not opted &quot;rerun-failed-batch&quot; into unattended execution</li></ul>
+      <ul class="reasons"><li>reviewer dissented: no line in the evidence directly supports the stated root cause</li><li>model confidence 0.40 is below the floor 0.75</li></ul>
       <p style="margin-top:14px">
              
              </p>
@@ -98,8 +98,8 @@ the evidence supports the diagnosis and &quot;rerun-failed-batch&quot; addresses
     
 
     <div class="card"><h2>Receipt</h2>
-      <p class="mono">input digest 92db25baf02d5110bab3a3eb07f3771f0acf1f47a05d850ecf21ceff43a3fbfd</p>
-      <p class="mono">actor agent:offline:multi-agent-v1 · action needs_approval:rerun-failed-batch · 2026-11-18T01:50:24.746Z</p>
+      <p class="mono">input digest e596101a176fcec2ccd016e5f173599b52de472c12f2b7758a8b2e9ee3e0bb16</p>
+      <p class="mono">actor agent:offline:multi-agent-v1 · action needs_approval:open-ticket · 2026-11-18T02:35:09.131Z</p>
       <p class="mono">re-verified on load: verified</p>
     </div>
 

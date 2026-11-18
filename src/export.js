@@ -39,8 +39,14 @@ for (const tenantId of tenants) {
   writeFileSync(`${out}/metrics-${tenantId}.json`, JSON.stringify(data.metrics, null, 2));
 }
 
+// Which tenant a visitor lands on. Defaults to the first alphabetically,
+// which is rarely the one you want to show first.
+const primary = process.env.PRIMARY_TENANT && tenants.includes(process.env.PRIMARY_TENANT)
+  ? process.env.PRIMARY_TENANT
+  : tenants[0];
+
 writeFileSync(`${out}/index.html`, `<!doctype html><meta charset="utf-8"><title>NightShift</title>
-<meta http-equiv="refresh" content="0; url=./index-${tenants[0]}.html">
-<a href="./index-${tenants[0]}.html">Open NightShift</a>`);
+<meta http-equiv="refresh" content="0; url=./index-${primary}.html">
+<a href="./index-${primary}.html">Open NightShift</a>`);
 
 console.log(`\n  Exported ${pages} pages for ${tenants.length} tenants to ${out}/\n`);

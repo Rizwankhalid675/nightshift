@@ -4,7 +4,7 @@
 
 Built for the **AWS MSP AI Hackathon**, Track 1: Run Your MSP Better.
 
-**Live:** _(deploy pending — see [Hosting](#hosting))_ · **Video:** _(pending — script in [VIDEO.md](VIDEO.md))_ · **Limits:** [what this does not do yet](#honest-limits)
+**Live:** https://webrizz.dev/nightshift/ · **Video:** _(pending — script in [VIDEO.md](VIDEO.md))_ · **Limits:** [what this does not do yet](#honest-limits)
 
 ```
 203 alerts  →  21 incidents  →  12 pages to a human
@@ -431,6 +431,9 @@ npm run verify   # everything CI runs, locally
 ```
 
 ## Hosting
+
+**Deployed:** https://webrizz.dev/nightshift/ — the static export, no setup, click straight through.
+Approval buttons are inert there (no server); run `node src/server.js` for the live console.
 
 Two paths, both committed:
 

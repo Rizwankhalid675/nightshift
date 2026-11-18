@@ -1,5 +1,5 @@
 {
-  "runId": "46ce0b3b",
+  "runId": "643d81db",
   "tenantId": "acme-retail",
   "label": "Acme Retail (managed customer) / offline",
   "alertsIn": 203,
@@ -17,7 +17,8 @@
   "executorMode": "dry-run",
   "agentMode": "multi",
   "injectedFault": "none",
-  "reviewerDissents": 0,
+  "dataset": "train",
+  "reviewerDissents": 3,
   "degradedRuns": 0,
   "model": "offline:multi-agent-v1"
 }

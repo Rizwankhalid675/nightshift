@@ -1,5 +1,5 @@
 {
-  "runId": "14cb8838",
+  "runId": "028bb1fd",
   "tenantId": "northwind-msp",
   "label": "Northwind MSP (internal NOC) / offline",
   "alertsIn": 203,
@@ -17,6 +17,7 @@
   "executorMode": "dry-run",
   "agentMode": "multi",
   "injectedFault": "none",
+  "dataset": "train",
   "reviewerDissents": 0,
   "degradedRuns": 0,
   "model": "offline:multi-agent-v1"
