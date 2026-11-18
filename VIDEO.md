@@ -58,22 +58,26 @@ different run. If a judge asks, that variation is the honest answer and it is in
 
 ## The script
 
-The words live in **[`docs/video-teleprompter.md`](docs/video-teleprompter.md)** — eight beats,
-~410 words, 2:45, with a cue on each beat saying what the browser is doing while you talk. Open it
-on a phone or second screen and read it. Do not improvise; improvising always runs long.
+The words live in **[`docs/video-teleprompter.md`](docs/video-teleprompter.md)** — nine beats,
+~2:55 against a 3:00 cap, each with a cue saying what the browser is doing while you talk. Read it
+off a phone or second screen. Improvising always runs long.
 
-Beat map, for reference:
-
-| Beat | Time | Shot |
+| Time | Beat | Shot |
 |---|---|---|
-| 1 | 0:00–0:12 | dashboard, the 203 / 12 numbers |
-| 2 | 0:12–0:22 | what it is, in one sentence |
-| 3 | 0:22–0:42 | the suppressed panel and its reasons |
-| 4 | 0:42–1:12 | one incident: evidence, hashes, four agents |
-| 5 | **1:12–1:50** | **the fabricated citation, caught** |
-| 6 | 1:50–2:12 | README: both datasets, zeros |
-| 7 | 2:12–2:28 | the second tenant |
-| 8 | 2:28–2:45 | limits, and the live URL |
+| 0:00–0:12 | the problem | dashboard, 203 in / 12 paged |
+| 0:12–0:22 | what it is | one sentence, three layers |
+| 0:22–0:40 | suppression | the panel and its written reasons |
+| 0:40–1:06 | one incident | evidence, hashes, four agents |
+| 1:06–1:42 | **the fabricated citation, caught** | reviewer dissent, gate holds |
+| 1:42–2:08 | **the AWS account, live** | Bedrock call from the console — required by the rules |
+| 2:08–2:26 | the numbers | README, both datasets |
+| 2:26–2:42 | **the failing number, volunteered** | acme tab, 1 false auto-action, explained |
+| 2:42–2:55 | limits and close | hero numbers, live URL |
+
+Two beats are doing unusual work. **1:06** shows a real model fabricating a citation and
+deterministic code catching it. **2:26** volunteers a number that counts against us, on camera,
+before a judge can find it by clicking. Criterion 3 scores outcomes *"based on what's
+demonstrated"* — demonstrated includes the part that did not go perfectly.
 
 ## Recording rules that save the take
 
