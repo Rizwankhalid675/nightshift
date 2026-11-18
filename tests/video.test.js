@@ -163,3 +163,39 @@ test("the README states the real number of tests", async () => {
     assert.equal(claim, declared, `README says ${claim} tests, tests/ declares ${declared}`);
   }
 });
+
+/* docs/narration-script.txt is what gets pasted into a voice service, and
+   docs/reel-teleprompter.md is what the captions are timed against. They are
+   the same words in two files, which is exactly how two files stop being the
+   same words. */
+test("the voice-service script is the teleprompter's lines, verbatim", () => {
+  const spoken = reelPrompter
+    .split("\n")
+    .reduce((acc, line, i, all) => {
+      if (/^### \d+:\d\d {2}·/.test(line)) acc.push(all[i + 2]?.trim());
+      return acc;
+    }, [])
+    .filter(Boolean);
+
+  const pasteable = readFileSync("docs/narration-script.txt", "utf8")
+    .split(/\n\s*\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  assert.equal(
+    pasteable.length,
+    spoken.length,
+    `narration-script.txt has ${pasteable.length} lines, the teleprompter has ${spoken.length}`,
+  );
+  pasteable.forEach((line, i) => {
+    assert.equal(line, spoken[i], `line ${i + 1} differs between the script and the teleprompter`);
+  });
+});
+
+test("the voice-service script has one line per caption", () => {
+  const captions = [...buildReel.matchAll(/\bc\d\d:\d+/g)].length;
+  const lines = readFileSync("docs/narration-script.txt", "utf8")
+    .split(/\n\s*\n/)
+    .filter((s) => s.trim()).length;
+  assert.equal(lines, captions, `${lines} narration lines for ${captions} captions`);
+});

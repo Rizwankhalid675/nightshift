@@ -1,0 +1,45 @@
+This is three days of alerts from one customer of a managed service provider. Two hundred and three of them.
+
+Twelve actually mattered. On-call stopped reading these weeks ago — and that is how real outages get missed.
+
+NightShift. Rules decide what deserves attention. Bedrock decides what is wrong. And code decides whether a robot may act.
+
+A hundred and seventeen of these never reach the model at all. A benign pattern a library logs at error.
+
+A nightly maintenance window. A probe flapping. Each one says why, in writing — so suppression is auditable, not magic.
+
+One real incident. Five alerts, one payments outage. This is everything the model was shown.
+
+And nothing else. Every item is hashed, so the evidence cannot be altered after the fact.
+
+Four agents run in sequence. Triage, then diagnosis, then a proposed remediation, and finally a reviewer.
+
+That reviewer cannot see the first agent's confidence. Its only job is to disagree.
+
+Now the part we did not plan for. The reviewer came back and said: confirmed.
+
+And it supplied a quote from the evidence to justify that verdict.
+
+Code checked the quote against the source. It is not there. It never was.
+
+The model fabricated its own citation, and then offered it as proof.
+
+The check caught it. The verdict was downgraded to a dissent, and the action is held for a human.
+
+This is the account it runs in. Region us-east-2, Amazon Bedrock — a live call going out and coming back.
+
+There are no static credentials anywhere in this path. Every request is signed with the task role it runs under.
+
+The numbers are measured on both tenants, and read straight from committed run artefacts — not retyped onto a slide.
+
+And the console you just saw regenerates from that saved data, byte for byte, with no model call at all. Every figure is reproducible.
+
+Same binary, a different customer, a different rule pack. And this one is not clean.
+
+One unattended action, on an incident our own labels call noise.
+
+It changed no infrastructure. We still count it against ourselves.
+
+Traffic is synthetic and seeded, so every number here reproduces. Execution is dry-run by default.
+
+The limits are written in the README — before anyone asked.
