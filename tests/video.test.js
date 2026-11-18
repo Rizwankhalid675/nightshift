@@ -16,7 +16,7 @@ const toSeconds = (mmss) => {
 /* The teleprompter is what a person reads aloud; the build script decides when
    the picture actually cuts. They are two files, so they drift. These bind them. */
 
-test("the teleprompter's last beat ends exactly where the picture does", () => {
+test("the teleprompter's last beat ends exactly where the narration window does", () => {
   const beats = [...prompter.matchAll(/^### \d+ · (\d+:\d\d) → (\d+:\d\d) ·/gm)];
   assert.ok(beats.length >= 9, `expected at least 9 beats, found ${beats.length}`);
 
@@ -29,7 +29,7 @@ test("the teleprompter's last beat ends exactly where the picture does", () => {
   assert.equal(
     pictureEnd,
     narrationEnd,
-    `the script ends at ${narrationEnd}s but the picture runs ${pictureEnd}s`,
+    `the script ends at ${narrationEnd}s but the narration window is ${pictureEnd}s`,
   );
 });
 
@@ -43,10 +43,19 @@ test("the teleprompter's beats run back to back, with no gap or overlap", () => 
 });
 
 test("neither cut can be built over the three-minute cap", () => {
-  const video = [...buildVideo.matchAll(/^\s+"[a-z0-9_]+:(\d+)"/gm)]
+  /* The picture is longer than the narration: a title card runs before anyone
+     speaks and an end card holds after the last word. The cap applies to the
+     whole file, so count all three. */
+  const narration = [...buildVideo.matchAll(/^\s+"[a-z0-9_]+:(\d+)"/gm)]
     .map((m) => Number(m[1]))
     .reduce((a, b) => a + b, 0);
-  assert.ok(video <= CAP_SECONDS, `narrated cut is ${video}s, over the ${CAP_SECONDS}s cap`);
+  const leadIn = Number(buildVideo.match(/^LEAD_IN=(\d+)/m)[1]);
+  const tail = Number(buildVideo.match(/^TAIL=(\d+)/m)[1]);
+  const video = leadIn + narration + tail;
+  assert.ok(
+    video <= CAP_SECONDS,
+    `picture is ${video}s (${leadIn} title + ${narration} narration + ${tail} end), over the ${CAP_SECONDS}s cap`,
+  );
 
   const shots = [...buildReel.matchAll(/\bc\d\d:(\d+)/g)].map((m) => Number(m[1]));
   assert.ok(shots.length > 0, "found no caption durations in build-reel.sh");
@@ -61,5 +70,16 @@ test("every caption the reel names has a frame on disk", async () => {
   assert.ok(names.length > 0, "found no captions in build-reel.sh");
   for (const n of names) {
     assert.ok(existsSync(`video/reel/${n}.jpg`), `build-reel.sh names ${n} but video/reel/${n}.jpg is missing`);
+  }
+});
+
+test("the title and end cards exist as frames", async () => {
+  const { existsSync } = await import("node:fs");
+  for (const card of ["b00_title", "b10_end"]) {
+    assert.ok(
+      buildVideo.includes(card),
+      `build-video.sh no longer uses ${card}`,
+    );
+    assert.ok(existsSync(`video/frames/${card}.jpg`), `video/frames/${card}.jpg is missing`);
   }
 });

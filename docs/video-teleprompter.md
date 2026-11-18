@@ -3,9 +3,13 @@
 Nine beats, **2:45** against a 3:00 cap. ~410 words, so ~150 a minute. Open on a phone or second
 screen. If you finish a beat early, pause; do not improvise.
 
-**The picture is already finished.** You are recording voice only, over a locked 2:45 cut. There is
-no browser to drive and no keystrokes to hit — those were needed when the demo was captured live,
-and they are not any more. Play `video/nightshift_silent.mp4` on one screen and read from the other.
+**The picture is already finished.** You are recording voice only, over a locked cut. There is no
+browser to drive and no keystrokes to hit — those were needed when the demo was captured live, and
+they are not any more. Play `video/nightshift_silent.mp4` on one screen and read from the other.
+
+**A 4-second title card runs first.** Do not speak over it. Start on beat 1 when the dashboard
+appears; the build script offsets your take by those four seconds automatically. An end card holds
+for six seconds after your last word. The whole file is 2:55, the spoken part 2:45.
 
 **Reset first:** `./scripts/video-reset.sh` — it checks the tests, confirms the deployed site matches
 the committed run data, and proves the site regenerates byte for byte. It exits non-zero if anything
@@ -96,7 +100,8 @@ limits are in the README, written before you asked.
 1. Play `video/nightshift_silent.mp4` once through without speaking, to learn where the cuts land.
 2. Record with QuickTime Player (**File → New Audio Recording**) or Voice Memos. Quiet room, mic
    close in, **one continuous take** — do not stop between beats.
-3. Start the recording and the video together, and read to the timecodes.
+3. Start recording, start the video, and begin beat 1 when the dashboard appears — not on the
+   title card. Read to the timecodes from there.
 4. Lay the take over the picture:
 
    ```bash
