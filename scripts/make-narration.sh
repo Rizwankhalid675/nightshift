@@ -25,12 +25,17 @@ FORMAT=mp3_44100_128
 
 die() { echo "$*" >&2; exit 1; }
 
-[ -f .env ] || die "No .env file. Copy .env.example to .env and put your ElevenLabs key in it.
-If .env.example is missing too, create .env with these three lines:
+[ -f .env ] || die "No .env file yet. Create it by pasting this, with your key in place
+of the placeholder:
 
-  ELEVENLABS_API_KEY=your-key-here
+  cat > .env <<'EOF'
+  ELEVENLABS_API_KEY=paste-your-key-here
   ELEVENLABS_VOICE_ID=
-  ELEVENLABS_MODEL_ID=eleven_multilingual_v2"
+  ELEVENLABS_MODEL_ID=eleven_multilingual_v2
+  EOF
+  chmod 600 .env
+
+Then run this again with --voices to pick a voice. .env is git-ignored."
 
 # shellcheck disable=SC1091
 set -a; . ./.env; set +a
