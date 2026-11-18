@@ -58,6 +58,37 @@ start_of() {
   }'
 }
 
+find_latest_take() {
+  find ~/Desktop ~/Downloads -maxdepth 1 -type f \
+    \( -name '*.m4a' -o -name '*.wav' -o -name '*.mp3' -o -name '*.aiff' \) \
+    -mtime -7 2>/dev/null | while IFS= read -r f; do
+      printf '%s\t%s\n' "$(stat -f '%m' "$f")" "$f"
+    done | sort -rn | head -1 | cut -f2-
+}
+
+NARRATION="${1:-}"
+if [ "$NARRATION" = "--latest" ]; then
+  NARRATION=$(find_latest_take)
+  if [ -z "$NARRATION" ]; then
+    NARRATION="__no_take__"   # falls through to the missing-file help below
+  else
+    echo "using newest recording: $NARRATION"
+  fi
+fi
+
+# An EMPTY argument is not "no argument". zsh aborts an unmatched glob, so a
+# command substitution that was meant to name a take can hand us "", and the
+# old test let that fall through to a silent no-narration build that still
+# reported success.
+if [ "$#" -ge 1 ] && [ -z "$NARRATION" ]; then
+  echo "narration argument is empty." >&2
+  echo "A shell glob that matched nothing will do this — zsh aborts the glob" >&2
+  echo "and the substitution expands to nothing. Use --latest instead:" >&2
+  echo >&2
+  echo "  ./scripts/build-reel.sh --latest" >&2
+  exit 1
+fi
+
 if [ "${1:-}" = "--timeline" ]; then
   for i in $(seq 0 $((n-1))); do
     printf '%-10s %7ss\n' "${SHOTS[$i]%%:*}" "$(start_of "$i")"
@@ -117,9 +148,13 @@ done
 [ "$bad" -eq 0 ] || { echo "a shot rendered blank — refusing to ship this cut" >&2; exit 1; }
 echo "  every shot renders"
 
-if [ "${1:-}" != "" ]; then
-  if [ ! -f "$1" ]; then
-    echo "narration file not found: $1" >&2
+if [ -n "$NARRATION" ]; then
+  if [ ! -f "$NARRATION" ]; then
+    if [ "$NARRATION" = "__no_take__" ]; then
+      echo "--latest found no recording in ~/Desktop or ~/Downloads from the last week." >&2
+    else
+      echo "narration file not found: $NARRATION" >&2
+    fi
     echo >&2
     # Guessing which names are placeholders is a losing game — the last attempt
     # missed "your-file-name.m4a", which these very instructions had suggested.
@@ -153,7 +188,7 @@ There is no way around step 3: it needs a person speaking into a microphone.
 HINT
     exit 1
   fi
-  alen=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$1")
+  alen=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$NARRATION")
   awk -v a="$alen" -v w="$window" 'BEGIN{
     printf "  your take %.1fs   narration window %.1fs   drift %+.1fs\n", a, w, a-w
     if (a > w + 2)      print "  your take overruns the captions and will run into the end card"
@@ -161,7 +196,7 @@ HINT
   }'
   # adelay puts the voice after the title card; apad before -shortest so a
   # short take can never truncate the picture.
-  ffmpeg -y -loglevel error -i "$OUT/nightshift_reel.mp4" -i "$1" \
+  ffmpeg -y -loglevel error -i "$OUT/nightshift_reel.mp4" -i "$NARRATION" \
     -filter_complex "[1:a]adelay=$(awk -v s="$speak_from" 'BEGIN{printf "%d", s*1000}'):all=1,apad[a]" \
     -map 0:v -map "[a]" -c:v copy -c:a aac -b:a 192k -shortest \
     "$OUT/nightshift_reel_narrated.mp4"

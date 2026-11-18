@@ -167,8 +167,12 @@ The limits are written in the README — before anyone asked.
 4. Lay the take over the reel:
 
    ```bash
-   ./scripts/build-reel.sh ~/path/to/your-recording.m4a
+   ./scripts/build-reel.sh --latest
    ```
+
+   `--latest` picks up the newest recording in `~/Desktop` or `~/Downloads`, so there is no path
+   to type. To name one explicitly, pass its path instead — but not through a shell glob: zsh
+   aborts a glob that matches nothing, and the script would receive an empty argument.
 
    It reports the drift against the 154-second narration window and writes
    `video/nightshift_reel_narrated.mp4`.
