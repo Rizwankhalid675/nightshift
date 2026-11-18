@@ -48,12 +48,67 @@ set -a; . ./.env; set +a
 HDR="$(mktemp)"; trap 'rm -f "$HDR"' EXIT
 ( umask 077; printf 'xi-api-key: %s\n' "$ELEVENLABS_API_KEY" > "$HDR" )
 
+# Describe the key WITHOUT revealing it, for when the API rejects it.
+key_shape() {
+  python3 - <<'PY'
+import os
+k = os.environ.get("ELEVENLABS_API_KEY", "")
+bits = [f"{len(k)} characters"]
+if k != k.strip():            bits.append("has leading/trailing whitespace")
+if any(c in k for c in "\r\n"):bits.append("contains a newline")
+if k.startswith("sk_"):       bits.append("starts with sk_")
+elif k:                       bits.append("does NOT start with sk_")
+if k.lower() in ("paste_key_here", "paste-your-key-here", "your-key-here"):
+    bits.append("IS STILL THE PLACEHOLDER")
+print("  key: " + ", ".join(bits))
+PY
+}
+
+# Does this key have text-to-speech permission at all? A key can be scoped so
+# narrowly that --voices fails while generation still works, so test the thing
+# we actually need rather than inferring it from the voices call.
+if [ "${1:-}" = "--probe" ]; then
+  vid="${2:-${ELEVENLABS_VOICE_ID:-}}"
+  [ -n "$vid" ] || die "Usage: $0 --probe <voice_id>
+No voice id given and ELEVENLABS_VOICE_ID is empty in .env. Copy a voice id
+from the ElevenLabs dashboard (Voices, then the id under a voice's name)."
+  body_file="$(mktemp)"; trap 'rm -f "$HDR" "$body_file"' EXIT
+  code=$(curl -sS -o "$body_file" -w '%{http_code}' -X POST \
+    -H @"$HDR" -H 'Content-Type: application/json' \
+    --data-binary '{"text":"Testing.","model_id":"'"$ELEVENLABS_MODEL_ID"'"}' \
+    "$API/text-to-speech/$vid?output_format=$FORMAT" || echo 000)
+  if [ "$code" = "200" ]; then
+    echo "text-to-speech works with voice $vid ($(wc -c < "$body_file" | tr -d ' ') bytes of audio)."
+    echo "Put that id in ELEVENLABS_VOICE_ID and run this script with no arguments."
+    exit 0
+  fi
+  echo "text-to-speech refused (HTTP $code)." >&2
+  head -c 300 "$body_file" >&2; echo >&2
+  exit 1
+fi
+
 if [ "${1:-}" = "--voices" ]; then
-  curl -fsS -H @"$HDR" "$API/voices" \
-    | python3 -c 'import json,sys
-for v in json.load(sys.stdin).get("voices", []):
-    print(f"  {v.get(\"voice_id\",\"?\"):<24} {v.get(\"name\",\"?\")}")' \
-    || die "Could not list voices. Check the key in .env."
+  body_file="$(mktemp)"; trap 'rm -f "$HDR" "$body_file"' EXIT
+  code=$(curl -sS -o "$body_file" -w '%{http_code}' -H @"$HDR" "$API/voices" || echo 000)
+  if [ "$code" != "200" ]; then
+    echo "ElevenLabs refused the request (HTTP $code)." >&2
+    key_shape >&2
+    case "$code" in
+      401) echo "  401 means the key was not accepted. Check for a stray space or a truncated paste." >&2 ;;
+      429) echo "  429 means rate-limited or out of quota." >&2 ;;
+    esac
+    head -c 300 "$body_file" >&2; echo >&2
+    exit 1
+  fi
+  python3 - "$body_file" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1]))
+voices = data.get("voices", [])
+if not voices:
+    print("  (no voices on this account)")
+for v in voices:
+    print("  %-24s %s" % (v.get("voice_id", "?"), v.get("name", "?")))
+PY
   echo
   echo "Paste one of those ids into ELEVENLABS_VOICE_ID in .env."
   exit 0
