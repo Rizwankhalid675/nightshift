@@ -3,12 +3,13 @@
 Nine beats, **2:45** against a 3:00 cap. ~410 words, so ~150 a minute. Open on a phone or second
 screen. If you finish a beat early, pause; do not improvise.
 
-**Reset first:** `./scripts/video-reset.sh` — it checks the tests, confirms the deployed site matches
-the committed run data, proves the site regenerates byte for byte, and prints the two commands to
-paste into CloudShell. It exits non-zero if anything is off. Do not record until it says
-*Ready to record.*
+**The picture is already finished.** You are recording voice only, over a locked 2:45 cut. There is
+no browser to drive and no keystrokes to hit — those were needed when the demo was captured live,
+and they are not any more. Play `video/nightshift_silent.mp4` on one screen and read from the other.
 
-**Two keystrokes are yours:** `cmd+2` at **1:37**, `cmd+1` at **2:18**. Claude drives everything else.
+**Reset first:** `./scripts/video-reset.sh` — it checks the tests, confirms the deployed site matches
+the committed run data, and proves the site regenerates byte for byte. It exits non-zero if anything
+is off. Do not record until it says *Ready to record.*
 
 > **Rules note.** The official rules require footage that shows *"the internal accounts including
 > all upstream/downstream environments."* That is beats 6–7. **Do not crop or blur the account
@@ -31,7 +32,7 @@ deterministic code decides whether a robot may touch anything.
 
 ---
 
-### 3 · 0:21 → 0:38 · *scrolls to the suppressed panel*
+### 3 · 0:21 → 0:38 · *the suppressed panel*
 
 A hundred and seventeen of these never reach the model. A benign pattern a library logs at ERROR. A
 nightly maintenance window. A probe flapping. Each says why, in writing — so suppression is
@@ -39,7 +40,7 @@ auditable, not magic.
 
 ---
 
-### 4 · 0:38 → 1:03 · *opens the payments-gateway incident, scrolls evidence and the agent table*
+### 4 · 0:38 → 1:03 · *the payments-gateway incident: evidence, then the agent table*
 
 One real incident. Five alerts, one payments outage. This is everything the model was shown and
 nothing else — every item hashed. Four agents in sequence: triage, diagnosis, remediation, and a
@@ -47,7 +48,7 @@ reviewer whose only job is to disagree.
 
 ---
 
-### 5 · 1:03 → 1:37 · *scrolls to the reviewer verdict and the gate — THE SHOT*
+### 5 · 1:03 → 1:37 · *the reviewer verdict and the gate — THE SHOT*
 
 Now the part I did not plan.
 
@@ -61,7 +62,7 @@ That is the design working against a real model, not a claim about one.
 
 ---
 
-### 6 · 1:37 → 2:01 · *`cmd+2` — AWS console, live Bedrock call*
+### 6 · 1:37 → 2:01 · *cut to the AWS console — the live Bedrock call*
 
 This is the account it runs in. Region us-east-2, Amazon Bedrock, Nova Pro — a live call going out
 and coming back. No static credentials anywhere; it signs with the task role.
@@ -75,7 +76,7 @@ Every number on it is reproducible from an artefact, not retyped.
 
 ---
 
-### 8 · 2:18 → 2:34 · *`cmd+1`, click the acme-retail tab — show the red number*
+### 8 · 2:18 → 2:34 · *cut to the acme-retail dashboard — the red number*
 
 Same binary, different customer. And this one is not clean. One unattended action on an incident
 our own labels call noise. It opened a ticket — it changed nothing — but we count it against
@@ -83,22 +84,35 @@ ourselves, and the dashboard says so without being asked.
 
 ---
 
-### 9 · 2:34 → 2:45 · *click northwind-msp, scroll to top*
+### 9 · 2:34 → 2:45 · *back to northwind-msp, top of the dashboard*
 
 Traffic is synthetic and seeded, so every number reproduces. Execution is dry-run by default. The
 limits are in the README, written before you asked.
 
 ---
 
-## Before you hit record
+## Recording
 
-- `./scripts/video-reset.sh` until it says **Ready to record**
-- Full-screen Chrome, bookmarks hidden (`cmd+shift+B`), Do Not Disturb on
-- **Close every other tab** — titles are legible at 1080p and some are personal
-- Leave the **CloudShell tab open**; beat 6 needs it
-- If Claude is driving, Chrome shows a *"Claude is debugging this browser"* banner. Either cancel it
-  and click through yourself, or crop everything above the page header in the edit — the AWS
-  account sits inside the page header, so the crop keeps what the rules require
+1. Play `video/nightshift_silent.mp4` once through without speaking, to learn where the cuts land.
+2. Record with QuickTime Player (**File → New Audio Recording**) or Voice Memos. Quiet room, mic
+   close in, **one continuous take** — do not stop between beats.
+3. Start the recording and the video together, and read to the timecodes.
+4. Lay the take over the picture:
+
+   ```bash
+   ./scripts/build-video.sh ~/path/to/your-recording.m4a
+   ```
+
+   It prints the drift between your take and the picture, then writes
+   `video/nightshift_narrated.mp4`.
+
+**Do not mux it by hand with `-shortest`.** A take shorter than the picture makes `-shortest` end
+the file at the end of the *audio*: a 30-second take against this cut produced a 37-second video,
+with the live AWS footage gone and exit status 0. The script pads the audio first, so a short take
+can only ever leave silence at the end.
+
+If a beat runs long, do not speed up to catch the next one. The cut arrives on time either way, and
+a calm voice over a slightly late line reads better than a rushed one.
 
 ## Why beats 5 and 8 are the submission
 
