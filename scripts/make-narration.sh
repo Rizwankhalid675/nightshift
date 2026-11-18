@@ -64,6 +64,45 @@ print("  key: " + ", ".join(bits))
 PY
 }
 
+# Speak the opening line in several voices, back to back, so the voice can be
+# chosen by ear rather than from a one-word description in a list.
+if [ "${1:-}" = "--samples" ]; then
+  shift
+  CANDS=("$@")
+  if [ "${#CANDS[@]}" -eq 0 ]; then
+    CANDS=(SAz9YHcvj6GT2YYXdXww cjVigY5qzO86Huf0OWal nPczCjzI2devNBz1zQrb onwK4e9ZLuTAKqWW03F9)
+  fi
+  LINE=$(python3 -c 'print(open("docs/narration-script.txt").read().split("\n\n")[0].strip().replace("\n"," "))')
+  mkdir -p video/voice-samples
+  rm -f video/voice-samples/*.mp3
+  ffmpeg -y -loglevel error -f lavfi -i anullsrc=r=44100:cl=mono -t 0.9 \
+    -c:a libmp3lame -b:a 128k video/voice-samples/gap.mp3
+  : > video/voice-samples/concat.txt
+  i=0
+  for vid in "${CANDS[@]}"; do
+    i=$((i+1))
+    out="video/voice-samples/$(printf '%02d' "$i")_$vid.mp3"
+    code=$(curl -sS -o "$out" -w '%{http_code}' -X POST \
+      -H @"$HDR" -H 'Content-Type: application/json' \
+      --data-binary "$(python3 -c '
+import json,sys; print(json.dumps({"text": sys.argv[1], "model_id": sys.argv[2]}))' "$LINE" "$ELEVENLABS_MODEL_ID")" \
+      "$API/text-to-speech/$vid?output_format=$FORMAT" || echo 000)
+    if [ "$code" = "200" ]; then
+      printf '  %s  %s  %ss\n' "$i" "$vid" \
+        "$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$out" | cut -d. -f1-2)"
+      printf "file '%s'\n" "$PWD/$out" >> video/voice-samples/concat.txt
+      printf "file '%s'\n" "$PWD/video/voice-samples/gap.mp3" >> video/voice-samples/concat.txt
+    else
+      printf '  %s  %s  refused (HTTP %s)\n' "$i" "$vid" "$code" >&2
+      rm -f "$out"
+    fi
+  done
+  ffmpeg -y -loglevel error -f concat -safe 0 -i video/voice-samples/concat.txt \
+    -c:a libmp3lame -b:a 192k video/voice-samples.mp3
+  echo "wrote video/voice-samples.mp3 — the same opening line in each voice, in the order above"
+  exit 0
+fi
+
 # Does this key have text-to-speech permission at all? A key can be scoped so
 # narrowly that --voices fails while generation still works, so test the thing
 # we actually need rather than inferring it from the voices call.

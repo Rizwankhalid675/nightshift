@@ -8,3 +8,8 @@ dist-live/
 video/*.mp4
 video/*.wav
 video/concat.txt
+video/voice-samples/
+video/voice-samples.mp3
+video/narration/
+video/narration.mp3
+video/narration-timings.json
