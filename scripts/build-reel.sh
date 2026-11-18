@@ -39,6 +39,30 @@ CAPS=(
   c19:7  c20:5  c21:4                 # 8    the number that counts against us
   c22:6  c23:5                        # 9    limits
 )
+# --sync retimes the captions to a narration track that already exists, instead
+# of leaving them on the durations guessed when the script was written.
+#
+# Caption k must appear exactly when line k is spoken. Caption starts advance by
+# (d_k - XF) because every pair crossfades, and the audio advances by
+# (line_k + GAP). Setting d_k = line_k + GAP + XF makes the two walk in step,
+# and the voice is already delayed to the first caption, so line 1 lands on it.
+if [ "${1:-}" = "--sync" ]; then
+  shift
+  TIMINGS=video/narration-timings.json
+  [ -f "$TIMINGS" ] || { echo "no $TIMINGS — run scripts/make-narration.sh first" >&2; exit 1; }
+  NEWCAPS=$(python3 - "$TIMINGS" "$XF" <<'PY'
+import json, sys
+t = json.load(open(sys.argv[1])); xf = float(sys.argv[2]); gap = t["gap"]
+out = []
+for i, ln in enumerate(t["lines"], 1):
+    out.append("c%02d:%s" % (i, round(ln["duration"] + gap + xf, 2)))
+print(" ".join(out))
+PY
+)
+  CAPS=($NEWCAPS)
+  echo "synced ${#CAPS[@]} captions to $TIMINGS"
+fi
+
 SHOTS=("b00_title:$LEAD_IN" "${CAPS[@]}" "b10_end:$TAIL")
 
 frame_for() {  # cards live with the other cut's frames; captions have their own dir
@@ -108,7 +132,9 @@ for i in $(seq 0 $((n-1))); do
   filter+="[$i:v]fps=30,crop=1568:$((764-CUT)):0:0,pad=1568:764:0:0:color=$BG,"
   filter+="scale=1920:936:flags=lanczos,pad=1920:1080:0:72:color=$BG,"
   filter+="format=yuv420p,setsar=1[v$i];"
-  raw=$((raw + secs))
+  # awk, not $((...)): --sync produces fractional durations and shell
+  # arithmetic is integer-only, which would fail on the first one.
+  raw=$(awk -v a="$raw" -v b="$secs" 'BEGIN{printf "%.3f", a + b}')
 done
 
 prev="[v0]"

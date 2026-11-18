@@ -153,8 +153,17 @@ PY
   exit 0
 fi
 
-[ -n "$ELEVENLABS_VOICE_ID" ] || die "ELEVENLABS_VOICE_ID is empty in .env.
-Run ./scripts/make-narration.sh --voices to see the ids on your account."
+# --voice <id> overrides .env, so a voice can be chosen without editing a
+# secrets file (this session cannot write .env at all, by design).
+if [ "${1:-}" = "--voice" ]; then
+  [ -n "${2:-}" ] || die "--voice needs a voice id"
+  ELEVENLABS_VOICE_ID="$2"
+  shift 2
+fi
+
+[ -n "$ELEVENLABS_VOICE_ID" ] || die "No voice chosen. Either put one in
+ELEVENLABS_VOICE_ID in .env, or pass it: $0 --voice <id>
+Run $0 --voices to see the ids on your account."
 
 [ -f "$SCRIPT_TXT" ] || die "missing $SCRIPT_TXT"
 
