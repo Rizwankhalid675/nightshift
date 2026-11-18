@@ -232,3 +232,38 @@ test("the narration generator never puts the key on a command line", () => {
     "the key must never be echoed",
   );
 });
+
+/* The architecture diagram is hand-authored SVG with fixed box widths, so a
+   label edited without widening its box clips silently — it renders, it just
+   loses the end of a word. Budget: ~6.9px per monospace char at 11.5px and
+   ~8.3px per proportional char at 15px semibold, plus 28px of padding. */
+test("no label in the architecture diagram overflows its box", () => {
+  const svg = readFileSync("docs/img/architecture.svg", "utf8");
+  const toks = [];
+  for (const m of svg.matchAll(/<rect class="panel"[^/]*\/>/g)) {
+    toks.push([m.index, "rect", Number(/width="([\d.]+)"/.exec(m[0])[1])]);
+  }
+  for (const m of svg.matchAll(/class="sub"[^>]*>([^<]*)<\/text>/g)) toks.push([m.index, "sub", m[1]]);
+  for (const m of svg.matchAll(/class="ttl"[^>]*>([^<]*)<\/text>/g)) toks.push([m.index, "ttl", m[1]]);
+  toks.sort((a, b) => a[0] - b[0]);
+
+  let width = null;
+  const over = [];
+  for (const [, kind, val] of toks) {
+    if (kind === "rect") { width = val; continue; }
+    if (width === null) continue;
+    const need = val.length * (kind === "sub" ? 6.9 : 8.3) + 28;
+    if (need > width) over.push(`${kind} "${val}" needs ${Math.ceil(need)}px in a ${width}px box`);
+    if (kind === "sub") width = null;
+  }
+  assert.deepEqual(over, [], `labels overflow their boxes:\n  ${over.join("\n  ")}`);
+});
+
+test("the architecture diagram is well-formed and sized for print", () => {
+  const svg = readFileSync("docs/img/architecture.svg", "utf8");
+  assert.match(svg, /^<svg[^>]*\bwidth="\d+"[^>]*\bheight="\d+"/m, "svg needs explicit width and height");
+  assert.match(svg, /viewBox="0 0 \d+ \d+"/, "svg needs a viewBox so it scales");
+  const [, w, h] = /viewBox="0 0 (\d+) (\d+)"/.exec(svg);
+  assert.ok(Number(w) >= 1200, `diagram is only ${w}px wide`);
+  assert.ok(Number(h) < Number(w), "diagram should be landscape for a submission form");
+});

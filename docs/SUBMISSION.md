@@ -29,6 +29,11 @@ watch a first pass muted.
 | Public on YouTube | **yours to do.** Unlisted does not satisfy "publicly visible" |
 | No third-party trademarks or copyrighted music | no music at all |
 | Private repository | confirmed private |
+| Architecture Diagram | `docs/img/architecture.svg` (and `.png`, 2960px) |
+| HLD Document | `docs/HLD.md` |
+| Link to publicly hosted project | https://webrizz.dev/nightshift/ |
+| Track | **Track 1 — Run Your MSP Better** (automated triage, multi-agent incident response) |
+| AWS AI service | Amazon Bedrock (Converse API), called at runtime in `src/agent/bedrock.js` |
 
 ## Only you can do these
 

@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1480" height="880" viewBox="0 0 1480 880" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <!-- Box widths are budgeted against the monospace sub-labels: ~6.9px per
+       character at 11.5px, plus 28px of padding. Lengthen a sub-label without
+       widening its box and it will clip. -->
+  <style>
+    .panel { fill: #161b22; stroke: #30363d; stroke-width: 1; }
+    .ttl   { fill: #e9eff6; font-size: 15px; font-weight: 600; }
+    .sub   { fill: #8b98a9; font-size: 11.5px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+    .band  { fill: none; stroke-width: 1; }
+    .blab  { font-size: 11px; font-weight: 700; letter-spacing: 1.4px; }
+    .arrow { stroke: #30363d; stroke-width: 1.5; fill: none; marker-end: url(#a); }
+    .foot  { fill: #8b98a9; font-size: 12.5px; }
+    .footk { fill: #e9eff6; font-size: 12.5px; font-weight: 600; }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,1 L9,5 L0,9" fill="none" stroke="#30363d" stroke-width="1.5"/>
+    </marker>
+  </defs>
+
+  <rect fill="#0d1117" width="1480" height="880"/>
+
+  <text x="30" y="44" fill="#e9eff6" font-size="27" font-weight="600" letter-spacing="-.4">NightShift</text>
+  <text x="178" y="44" fill="#8b98a9" font-size="15">agentic on-call triage for MSPs  ·  architecture</text>
+  <text x="30" y="70" fill="#8b98a9" font-size="13.5">The model proposes  ·  deterministic code decides  ·  nothing executes without a receipt</text>
+
+  <!-- ingest -->
+  <rect class="band" x="30" y="96" width="1420" height="116" rx="14" stroke="#6e768144" fill="#6e76810a"/>
+  <rect fill="#0d1117" x="46" y="88" width="196" height="16"/>
+  <text class="blab" x="54" y="100" fill="#6e7681">INGEST — UNTRUSTED INPUT</text>
+  <rect class="panel" x="52" y="122" width="172" height="64" rx="10"/>
+  <text class="ttl" x="66" y="148">CloudWatch alarms</text><text class="sub" x="66" y="168">EventBridge</text>
+  <rect class="panel" x="240" y="122" width="168" height="64" rx="10"/>
+  <text class="ttl" x="254" y="148">Datadog / Zabbix</text><text class="sub" x="254" y="168">vendor webhooks</text>
+  <rect class="panel" x="424" y="122" width="168" height="64" rx="10"/>
+  <text class="ttl" x="438" y="148">Synthetic probes</text><text class="sub" x="438" y="168">seeded generator</text>
+  <rect class="panel" x="608" y="122" width="168" height="64" rx="10"/>
+  <text class="ttl" x="622" y="148">Ticketing hooks</text><text class="sub" x="622" y="168">inbound</text>
+  <path class="arrow" d="M788,154 L824,154"/>
+  <rect class="panel" x="834" y="122" width="320" height="64" rx="10" stroke="#2f81f7"/>
+  <text class="ttl" x="848" y="148">Alert contract</text>
+  <text class="sub" x="848" y="168">contracts.js — integration boundary</text>
+
+  <!-- correlation -->
+  <rect class="band" x="30" y="236" width="1420" height="122" rx="14" stroke="#3fb95044" fill="#3fb9500a"/>
+  <rect fill="#0d1117" x="46" y="228" width="406" height="16"/>
+  <text class="blab" x="54" y="240" fill="#3fb950">CORRELATION — DETERMINISTIC, FULLY TRUSTED</text>
+  <rect class="panel" x="52" y="264" width="268" height="68" rx="10"/>
+  <text class="ttl" x="66" y="290">Signature normalise</text>
+  <text class="sub" x="66" y="310">counts, timestamps, attempts out</text>
+  <path class="arrow" d="M328,298 L360,298"/>
+  <rect class="panel" x="370" y="264" width="236" height="68" rx="10"/>
+  <text class="ttl" x="384" y="290">Window + flap detect</text>
+  <text class="sub" x="384" y="310">per-tenant window</text>
+  <path class="arrow" d="M614,298 L646,298"/>
+  <rect class="panel" x="656" y="264" width="268" height="68" rx="10"/>
+  <text class="ttl" x="670" y="290">Suppress with a reason</text>
+  <text class="sub" x="670" y="310">benign · window · flapping · dup</text>
+  <path class="arrow" d="M932,298 L964,298"/>
+  <rect class="panel" x="974" y="264" width="300" height="68" rx="10" stroke="#3fb950"/>
+  <text class="ttl" x="988" y="290" fill="#3fb950">117 of 203 stop here</text>
+  <text class="sub" x="988" y="310">each states why, in writing</text>
+
+  <!-- agents -->
+  <rect class="band" x="30" y="382" width="1420" height="122" rx="14" stroke="#2f81f744" fill="#2f81f70a"/>
+  <rect fill="#0d1117" x="46" y="374" width="440" height="16"/>
+  <text class="blab" x="54" y="386" fill="#2f81f7">AGENTS — AMAZON BEDROCK, UNTRUSTED AND GRADED</text>
+  <rect class="panel" x="52" y="410" width="168" height="68" rx="10"/>
+  <text class="ttl" x="66" y="436">triage</text><text class="sub" x="66" y="456">kind and urgency</text>
+  <path class="arrow" d="M228,444 L258,444"/>
+  <rect class="panel" x="268" y="410" width="214" height="68" rx="10"/>
+  <text class="ttl" x="282" y="436">diagnosis</text><text class="sub" x="282" y="456">root cause + confidence</text>
+  <path class="arrow" d="M490,444 L520,444"/>
+  <rect class="panel" x="530" y="410" width="226" height="68" rx="10"/>
+  <text class="ttl" x="544" y="436">remediation</text><text class="sub" x="544" y="456">only ids in the rule pack</text>
+  <path class="arrow" d="M764,444 L794,444"/>
+  <rect class="panel" x="804" y="410" width="250" height="68" rx="10" stroke="#2f81f7"/>
+  <text class="ttl" x="818" y="436">adversarial reviewer</text>
+  <text class="sub" x="818" y="456">blind to agent 2 confidence</text>
+  <path class="arrow" d="M1062,444 L1092,444"/>
+  <rect class="panel" x="1102" y="410" width="296" height="68" rx="10" stroke="#f0883e"/>
+  <text class="ttl" x="1116" y="436" fill="#f0883e">quoteIsReal()</text>
+  <text class="sub" x="1116" y="456">checked vs SOURCE evidence only</text>
+
+  <!-- gate -->
+  <rect class="band" x="30" y="528" width="1420" height="122" rx="14" stroke="#f0883e44" fill="#f0883e0a"/>
+  <rect fill="#0d1117" x="46" y="520" width="478" height="16"/>
+  <text class="blab" x="54" y="532" fill="#f0883e">POLICY GATE + EXECUTOR — DETERMINISTIC, FULLY TRUSTED</text>
+  <rect class="panel" x="52" y="556" width="176" height="68" rx="10"/>
+  <text class="ttl" x="66" y="582">11 rules</text><text class="sub" x="66" y="602">reject · hold · auto</text>
+  <path class="arrow" d="M236,590 L258,590"/>
+  <rect class="panel" x="258" y="556" width="212" height="68" rx="10"/>
+  <text class="ttl" x="272" y="582">confidence floor 0.75</text>
+  <text class="sub" x="272" y="602">below it, a human</text>
+  <path class="arrow" d="M478,590 L508,590"/>
+  <rect class="panel" x="518" y="556" width="252" height="68" rx="10"/>
+  <text class="ttl" x="532" y="582">executor re-authorises</text>
+  <text class="sub" x="532" y="602">re-derives from rule pack</text>
+  <path class="arrow" d="M778,590 L808,590"/>
+  <rect class="panel" x="818" y="556" width="248" height="68" rx="10"/>
+  <text class="ttl" x="832" y="582">AWS Systems Manager</text>
+  <text class="sub" x="832" y="602">dry-run by default</text>
+  <path class="arrow" d="M1074,590 L1104,590"/>
+  <rect class="panel" x="1114" y="556" width="284" height="68" rx="10" stroke="#3fb950"/>
+  <text class="ttl" x="1128" y="582">sha256 receipt chain</text>
+  <text class="sub" x="1128" y="602">digest + actor + action + time</text>
+
+  <!-- operator console, its own row so it is not mistaken for an agent -->
+  <rect class="panel" x="30" y="672" width="1420" height="56" rx="10"/>
+  <text class="ttl" x="48" y="698">Operator console</text>
+  <text class="sub" x="190" y="698">the evidence bundle, the agent handoff, the gate's reasons and the receipt — on one page, per incident</text>
+  <path class="arrow" d="M740,650 L740,668"/>
+
+  <text class="footk" x="30" y="772">Live:</text>
+  <text class="foot" x="72" y="772">Bedrock Converse, SigV4 signed in node:crypto, credentials from the task role — no static keys anywhere</text>
+  <text class="footk" x="30" y="798">Multi-tenant:</text>
+  <text class="foot" x="118" y="798">a tenant is a rule pack; two ship and behave differently on identical traffic</text>
+  <text class="footk" x="30" y="824">Reproducible:</text>
+  <text class="foot" x="122" y="824">the console regenerates from saved run data, byte for byte, with no model call</text>
+  <text class="footk" x="30" y="850">Disclosed:</text>
+  <text class="foot" x="104" y="850">acme-retail reports 1 false auto-action on live runs; it is on the dashboard, not hidden</text>
+</svg>
