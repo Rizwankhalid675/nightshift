@@ -7,6 +7,7 @@ const CAP_SECONDS = 180; // the event's 3:00 limit
 const prompter = readFileSync("docs/video-teleprompter.md", "utf8");
 const buildVideo = readFileSync("scripts/build-video.sh", "utf8");
 const buildReel = readFileSync("scripts/build-reel.sh", "utf8");
+const reelPrompter = readFileSync("docs/reel-teleprompter.md", "utf8");
 
 const toSeconds = (mmss) => {
   const [m, s] = mmss.split(":").map(Number);
@@ -81,5 +82,84 @@ test("the title and end cards exist as frames", async () => {
       `build-video.sh no longer uses ${card}`,
     );
     assert.ok(existsSync(`video/frames/${card}.jpg`), `video/frames/${card}.jpg is missing`);
+  }
+});
+
+/* The reel's narration script carries a timecode per caption. Those come from
+   `build-reel.sh --timeline`, so the two files must agree or the reader is
+   cueing to cuts that no longer exist. Recompute and compare. */
+
+const reelShots = () => {
+  const num = (re) => Number(buildReel.match(re)[1]);
+  const leadIn = num(/^LEAD_IN=(\d+)/m);
+  const tail = num(/^TAIL=(\d+)/m);
+  const xf = num(/^XF=([\d.]+)/m);
+  const caps = [...buildReel.matchAll(/\b(c\d\d):(\d+)/g)].map((m) => ({ name: m[1], secs: Number(m[2]) }));
+  const shots = [{ name: "b00_title", secs: leadIn }, ...caps, { name: "b10_end", secs: tail }];
+  let cum = 0;
+  return shots.map((shot, i) => {
+    const start = cum - i * xf;
+    cum += shot.secs;
+    return { ...shot, start };
+  });
+};
+
+test("every caption in the reel script is timed where the build puts it", () => {
+  const shots = reelShots();
+  const byName = new Map(shots.map((s) => [s.name, s.start]));
+
+  const timed = [...reelPrompter.matchAll(/<sub>\d+ words · ([\d.]+)s<\/sub>/g)].map((m) => Number(m[1]));
+  const caps = shots.filter((s) => /^c\d\d$/.test(s.name));
+  assert.equal(timed.length, caps.length, `script has ${timed.length} timed lines, the build has ${caps.length} captions`);
+
+  caps.forEach((cap, i) => {
+    assert.ok(
+      Math.abs(timed[i] - byName.get(cap.name)) < 0.01,
+      `${cap.name}: script says ${timed[i]}s, the build puts it at ${byName.get(cap.name).toFixed(2)}s`,
+    );
+  });
+});
+
+test("the reel's narration window leaves room for the end card", () => {
+  const shots = reelShots();
+  const first = shots.find((s) => /^c\d\d$/.test(s.name)).start;
+  const endCard = shots[shots.length - 1].start;
+  assert.ok(first > 0, "narration starts at or before the title card");
+  assert.ok(endCard > first, "the end card starts before the narration does");
+
+  const stated = Number(reelPrompter.match(/the \*\*?([\d.]+)?-?second narration window|against the (\d+)-second narration window/)?.[2] ?? NaN);
+  if (!Number.isNaN(stated)) {
+    assert.ok(
+      Math.abs(stated - (endCard - first)) < 1,
+      `script quotes a ${stated}s window, the build gives ${(endCard - first).toFixed(1)}s`,
+    );
+  }
+});
+
+test("the finished reel stays inside the three-minute cap", () => {
+  const shots = reelShots();
+  const xf = Number(buildReel.match(/^XF=([\d.]+)/m)[1]);
+  const raw = shots.reduce((a, s) => a + s.secs, 0);
+  const total = raw - (shots.length - 1) * xf;
+  assert.ok(total <= CAP_SECONDS, `reel is ${total}s, over the ${CAP_SECONDS}s cap`);
+});
+
+/* The README's test count has drifted three times, always by hand. Let it be
+   checked like anything else. Counting `test(` at line start matches what the
+   runner reports; if that ever stops being true, this test is the thing that
+   is wrong, not the README. */
+test("the README states the real number of tests", async () => {
+  const { readdirSync } = await import("node:fs");
+  const declared = readdirSync("tests")
+    .filter((f) => f.endsWith(".test.js"))
+    .map((f) => readFileSync(`tests/${f}`, "utf8"))
+    .reduce((n, src) => n + (src.match(/^test\(/gm) ?? []).length, 0);
+
+  const readme = readFileSync("README.md", "utf8");
+  const claims = [...readme.matchAll(/(\d+) tests/g)].map((m) => Number(m[1]));
+  assert.ok(claims.length > 0, "README no longer states a test count");
+
+  for (const claim of claims) {
+    assert.equal(claim, declared, `README says ${claim} tests, tests/ declares ${declared}`);
   }
 });
