@@ -120,21 +120,37 @@ echo "  every shot renders"
 if [ "${1:-}" != "" ]; then
   if [ ! -f "$1" ]; then
     echo "narration file not found: $1" >&2
-    case "$1" in
-      *path/to/*|*your-recording*|*yourvoice*)
-        cat >&2 <<'HINT'
+    echo >&2
+    # Guessing which names are placeholders is a losing game — the last attempt
+    # missed "your-file-name.m4a", which these very instructions had suggested.
+    # Say the useful thing every time the file is missing instead.
+    cands=$(find ~/Desktop ~/Downloads -maxdepth 1 -type f \
+              \( -name '*.m4a' -o -name '*.wav' -o -name '*.mp3' -o -name '*.aiff' \) \
+              -mtime -2 2>/dev/null | head -5)
+    if [ -n "$cands" ]; then
+      echo "Recent audio files on your Desktop and in Downloads:" >&2
+      while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        d=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$f" 2>/dev/null | cut -d. -f1)
+        printf '  %s  (%ss)\n' "$f" "${d:-?}" >&2
+      done <<< "$cands"
+      echo >&2
+      echo "If one of those is your take, pass its path. Otherwise:" >&2
+    else
+      echo "No recent audio found on your Desktop or in Downloads. To record a take:" >&2
+    fi
+    cat >&2 <<'HINT'
 
-That is the placeholder from the instructions, not a file. Record the take first:
+  1. Open docs/reel-teleprompter.md — 23 lines, about 2m34s of speaking.
+  2. Play video/nightshift_reel.mp4 beside it.
+  3. QuickTime Player > File > New Audio Recording. One continuous take.
+  4. Start both together; first word when the FIRST CAPTION appears at 0:03,
+     not over the title card.
+  5. Save it, then pass that file's real path to this script.
 
-  1. docs/reel-teleprompter.md is the script — 23 lines, about 2m34s of speaking.
-  2. Play video/nightshift_reel.mp4 and read along. First word when the FIRST
-     CAPTION appears at 0:03 — not over the title card.
-  3. QuickTime Player > File > New Audio Recording, one continuous take.
-     Save it, then pass that file's real path to this script.
+There is no way around step 3: it needs a person speaking into a microphone.
 
 HINT
-        ;;
-    esac
     exit 1
   fi
   alen=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$1")
