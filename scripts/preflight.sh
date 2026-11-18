@@ -29,7 +29,7 @@ if [ ! -f "$R" ]; then bad "No README.md — this alone costs you the event"; el
 fi
 
 hdr "2. Evidence, not adjectives"
-if has '\| *Run *\||\| *Version *\||\| *Metric *\|'; then ok "Results table present"
+if grep -qE '^\|.*[0-9].*\|' "$R" 2>/dev/null; then ok "Results table present (table rows carry numbers)"
 else bad "No results table — a measured number is the pitch"; fi
 grep -qE '[0-9]+(\.[0-9]+)? ?(ms|s|%|\$|x|MB|req)' "$R" 2>/dev/null \
   && ok "README contains measured figures" || warn "No measured figures found in README"

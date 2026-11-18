@@ -1,0 +1,15 @@
+{
+  "tenantId": "acme-retail",
+  "displayName": "Acme Retail (managed customer)",
+  "correlationWindowSec": 600,
+  "flapThreshold": 4,
+  "maintenanceWindows": [
+    { "service": "*", "startMinuteUtc": 1380, "durationMin": 60, "reason": "customer change freeze window, 23:00-00:00 UTC" }
+  ],
+  "benignPatterns": [],
+  "remediations": [
+    { "id": "open-ticket",     "description": "Open a ticket for a human, take no action", "reversible": true, "blastRadius": "low",    "autoApprove": true,  "maxPerHour": 20 },
+    { "id": "rerun-failed-batch", "description": "Re-run the failed sync batch once",      "reversible": true, "blastRadius": "low",    "autoApprove": false, "maxPerHour": 1 },
+    { "id": "restart-service", "description": "Rolling restart of the affected service",   "reversible": true, "blastRadius": "medium", "autoApprove": false, "maxPerHour": 1 }
+  ]
+}

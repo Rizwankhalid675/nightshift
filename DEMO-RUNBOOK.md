@@ -7,12 +7,12 @@ volunteer one honest limitation, then end on the live URL and the repo.
 
 | # | Say | Do | They should see | If it breaks |
 |---|---|---|---|---|
-| 0 | | | | |
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
-| 4 | | | | |
-| 5 | | | | |
+| 0 | "203 alerts hit this NOC in three days. Eleven of them mattered." | - | - | - |
+| 1 | "Here is the console. 203 in, 12 paged." | open dashboard | KPI row, 94.1% removed | reload dist/ export |
+| 2 | "This one it threw away, and it tells you why." | open suppressed panel | benign / flapping / maintenance + reason | - |
+| 3 | "The real outage still got through." | open payments-gateway | critical, 5 alerts collapsed | - |
+| 4 | "The model proposed restart. The gate said no." | scroll to gate | two rules fired, incident is critical | - |
+| 5 | "And it cannot lie about what it read." | show receipt | sha256 digests, re-verified on load | - |
 
 ## Before you present
 

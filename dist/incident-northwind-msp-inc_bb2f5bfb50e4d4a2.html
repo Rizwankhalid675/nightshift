@@ -1,0 +1,92 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>order-sync incident · NightShift</title>
+<style>
+:root{--bg:#0d1117;--panel:#151b23;--line:#242c38;--ink:#e6edf3;--mut:#8b949e;
+--ok:#3fb950;--warn:#d29922;--bad:#f85149;--acc:#58a6ff;--radius:10px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
+a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
+header{border-bottom:1px solid var(--line);padding:14px 24px;display:flex;gap:18px;align-items:center;flex-wrap:wrap;background:var(--panel)}
+.brand{font-weight:700;letter-spacing:-.02em;font-size:16px}
+.brand span{color:var(--mut);font-weight:400;margin-left:8px;font-size:13px}
+main{max-width:1180px;margin:0 auto;padding:22px 24px 60px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:13px 15px}
+.kpi .n{font-size:26px;font-weight:700;letter-spacing:-.02em}
+.kpi .l{color:var(--mut);font-size:12px;margin-top:2px}
+.kpi.good .n{color:var(--ok)}.kpi.hold .n{color:var(--warn)}.kpi.bad .n{color:var(--bad)}
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);padding:10px 12px;border-bottom:1px solid var(--line)}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#1b222c}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;border:1px solid}
+.p-auto{color:var(--ok);border-color:#1f4a2a;background:#0f2416}
+.p-hold{color:var(--warn);border-color:#4a3b12;background:#241d0f}
+.p-rej{color:var(--bad);border-color:#4a1f1f;background:#240f0f}
+.p-noise{color:var(--mut);border-color:var(--line);background:#161c24}
+.p-crit{color:var(--bad);border-color:#4a1f1f}
+.sev{font-size:11px;color:var(--mut)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px}
+.card h2{margin:0 0 10px;font-size:14px;letter-spacing:-.01em}
+pre{background:#0b0f14;border:1px solid var(--line);border-radius:8px;padding:11px 13px;overflow-x:auto;
+font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:#c9d1d9;white-space:pre-wrap;word-break:break-word}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--mut)}
+ul.reasons{margin:6px 0 0;padding-left:18px}ul.reasons li{margin:3px 0}
+button{background:var(--acc);color:#04121f;border:0;border-radius:7px;padding:8px 14px;font-weight:650;cursor:pointer;font-size:13px}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button:hover{filter:brightness(1.08)}
+form{display:inline}
+.empty{color:var(--mut);text-align:center;padding:40px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius)}
+.tabs{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.tab{padding:5px 11px;border:1px solid var(--line);border-radius:7px;font-size:12px;color:var(--mut)}
+.tab.on{color:var(--ink);border-color:var(--acc)}
+.note{color:var(--mut);font-size:12px;margin-top:14px}
+@media(max-width:640px){main{padding:16px}td,th{padding:8px}.kpi .n{font-size:21px}}
+</style></head><body><header>
+<div class="brand">NightShift<span>agentic on-call triage</span></div>
+<div class="tabs"><a class="tab " href="./index-acme-retail.html">acme-retail</a><a class="tab on" href="./index-northwind-msp.html">northwind-msp</a></div></header><main>
+    <p><a href="./index-northwind-msp.html">&larr; all incidents</a></p>
+    <div class="card">
+      <h2>order-sync · error · 14 alerts collapsed into one incident</h2>
+      <p>A scheduled batch on order-sync failed repeatedly and has not self-recovered.</p>
+      <p class="mono">root cause hypothesis: Derived from alert text by the deterministic baseline, not a model.</p>
+    </div>
+
+    <div class="card"><h2>What the model was shown — and nothing else</h2>
+      <p class="mono">alerts from incident:inc_bb2f5bfb50e4d4a2 · sha256 e220052a5403</p><pre>service=order-sync severity=error count=14
+window=2026-12-02T04:05:00.000Z..2026-12-02T04:14:45.000Z
+[2026-12-02T04:05:00.000Z] ERROR Sync batch failed: 15 errors in the last 15 minutes (attempt 1)
+[2026-12-02T04:05:45.000Z] ERROR Sync batch failed: 15 errors in the last 15 minutes (attempt 2)
+[2026-12-02T04:06:30.000Z] ERROR Sync batch failed: 15 errors in the last 15 minutes (attempt 3)
+[2026-12-02T04:07:15.000Z] ERROR Sync batch failed: 15 errors in the last 15 minutes (attempt 4)
+[2026-12-02T04:08:00.000Z] ERROR Sync batch failed: 15 errors in the last 15 minutes (attempt 5)
+[2026-12-02T04:08:45.000Z] ERROR Sync batch failed: 15 errors in the last 15 minutes (attempt 6)</pre><p class="mono">runbook from tenant:northwind-msp · sha256 e690e6ee6ac1</p><pre>rerun-failed-batch: Re-run the failed sync batch once (reversible=true, blast=low)
+restart-service: Rolling restart of the affected service (reversible=true, blast=medium)
+rotate-logs: Rotate and ship logs, free disk (reversible=true, blast=low)
+scale-out: Add one task to the service (reversible=true, blast=medium)
+failover-primary: Fail over to the standby region (reversible=false, blast=high)
+open-ticket: Open a ticket for a human, take no action (reversible=true, blast=low)</pre><p class="mono">prior_incident from correlator:inc_bb2f5bfb50e4d4a2 · sha256 39eed1d79a70</p><pre>14 alerts collapsed into one incident</pre>
+    </div>
+
+    <div class="card"><h2>Proposal</h2>
+      <p class="mono">model offline:rules-v1 · self-reported confidence 0.82</p>
+      <p>Proposed remediation: <span class="mono">rerun-failed-batch</span></p>
+      <p class="mono">citations verified against the evidence shown: yes</p>
+    </div>
+
+    <div class="card"><h2>Gate decision <span class="pill p-auto">auto-remediated</span></h2>
+      <ul class="reasons"><li>&quot;rerun-failed-batch&quot; is reversible, low blast radius, opted in, within rate limit and above the confidence floor</li></ul>
+      
+    </div>
+
+    <div class="card"><h2>Receipt</h2>
+      <p class="mono">input digest 85a08d59b562bbe0ff6aa8d3e55f27176b6de2a5661af3dddcddbbaa58898bf3</p>
+      <p class="mono">actor agent:offline:rules-v1 · action auto_remediate:rerun-failed-batch · 2026-11-18T00:31:25.687Z</p>
+      <p class="mono">re-verified on load: verified</p>
+    </div>
+
+    <div class="card"><h2>Correlator notes</h2>
+      <pre>14 alerts collapsed into one incident</pre>
+    </div>
+  </main><p style="max-width:1180px;margin:0 auto;padding:0 24px 40px;color:#8b949e;font-size:12px">Static export — approval buttons are live in the running console.</p></body></html>

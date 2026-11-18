@@ -1,0 +1,14 @@
+{
+  "runId": "3460897a",
+  "label": "Northwind MSP (internal NOC) / offline",
+  "alertsIn": 203,
+  "incidentsOut": 21,
+  "noiseSuppressed": 9,
+  "actionable": 12,
+  "autoRemediated": 6,
+  "needsApproval": 6,
+  "falseAutoRemediations": 0,
+  "missedActionable": 0,
+  "medianTimeToProposalMs": 0,
+  "model": "offline:rules-v1"
+}

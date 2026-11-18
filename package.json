@@ -1,0 +1,17 @@
+{
+  "name": "nightshift",
+  "version": "0.1.0",
+  "description": "Agentic on-call triage for MSPs: deterministic correlation, Bedrock diagnosis, a policy gate and evidence receipts.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "eval": "node src/eval/run.js",
+    "eval:all": "node src/eval/all.js",
+    "test": "node --test tests/",
+    "demo:up": "node src/server.js",
+    "demo:reset": "rm -rf runs && echo 'runs cleared'"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

@@ -8,7 +8,7 @@ Judges are usually not required to watch past it.
 
 ## Rules check
 
-- [ ] Under the cap (state it: ____)
+- [x] Under the cap (state it: assume 3:00; ours targets 2:45)
 - [ ] Uploaded and **public** on the required platform (usually YouTube — unlisted often fails the rule)
 - [ ] Link in the README **and** on the submission form
 - [ ] Shows the project **actually functioning**, on the device it was built for
@@ -21,11 +21,11 @@ Write what you will *say*, word for word. Reading a script beats improvising eve
 
 | Time | Say (verbatim) | Show on screen |
 |---|---|---|
-| 0:00–0:15 | The problem as one number and one person. No product name yet. | |
-| 0:15–0:30 | What it is, in one sentence. Name it now. | the running product |
-| 0:30–1:45 | **The demo.** One continuous path, end to end. No slides. | |
-| 1:45–2:15 | The proof: the before/after number, and where it came from. | the results table, live |
-| 2:15–2:35 | One honest limitation, named by you. | |
+| 0:00-0:15 | "An MSP NOC took 203 alerts in three days. Twelve mattered. On-call stopped reading them weeks ago." | alert flood scrolling |
+| 0:15-0:30 | "NightShift: rules decide what deserves attention, Bedrock decides what is wrong, and code decides whether a robot may touch it." | the console |
+| 0:30-1:45 | Suppressed panel with reasons, then the real outage: evidence shown, proposal, gate holds it, receipt | one unbroken capture |
+| 1:45-2:15 | "94.1% of volume gone, zero real incidents missed. npm run eval exits non-zero if that stops being true." | terminal running the eval |
+| 2:15-2:35 | "The traffic is synthetic and remediations are not wired to Systems Manager yet. Both are in the README." | the limits section |
 | 2:35–2:45 | Who it's for and what's next. Live URL on screen. | |
 
 ## Recording rules that save the take

@@ -1,0 +1,25 @@
+{
+  "tenantId": "northwind-msp",
+  "displayName": "Northwind MSP (internal NOC)",
+  "correlationWindowSec": 900,
+  "flapThreshold": 6,
+  "maintenanceWindows": [
+    { "service": "billing-api", "startMinuteUtc": 180, "durationMin": 30, "reason": "nightly billing restart, 03:00-03:30 UTC" }
+  ],
+  "benignPatterns": [
+    {
+      "id": "benign-inactive-skip",
+      "service": "catalog-sync",
+      "match": "an inactive item already exists",
+      "why": "expected skip logged at ERROR by the sync library; no action exists for it"
+    }
+  ],
+  "remediations": [
+    { "id": "rerun-failed-batch", "description": "Re-run the failed sync batch once", "reversible": true,  "blastRadius": "low",    "autoApprove": true,  "maxPerHour": 2 },
+    { "id": "restart-service",    "description": "Rolling restart of the affected service", "reversible": true,  "blastRadius": "medium", "autoApprove": false, "maxPerHour": 1 },
+    { "id": "rotate-logs",        "description": "Rotate and ship logs, free disk",         "reversible": true,  "blastRadius": "low",    "autoApprove": true,  "maxPerHour": 4 },
+    { "id": "scale-out",          "description": "Add one task to the service",             "reversible": true,  "blastRadius": "medium", "autoApprove": false, "maxPerHour": 2 },
+    { "id": "failover-primary",   "description": "Fail over to the standby region",         "reversible": false, "blastRadius": "high",   "autoApprove": false, "maxPerHour": 1 },
+    { "id": "open-ticket",        "description": "Open a ticket for a human, take no action","reversible": true, "blastRadius": "low",    "autoApprove": true,  "maxPerHour": 20 }
+  ]
+}
