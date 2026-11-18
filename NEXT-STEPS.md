@@ -54,9 +54,10 @@ Two of four criteria are partly judged off it — Potential Impact says "based o
 
 ## Mine (I can keep going on these)
 
-- **Execution adapter** — wire approved remediations to AWS Systems Manager so auto-remediation
-  actually does something. Currently the gate decides and records but never executes. This is the
-  biggest remaining gap in "Technological Implementation".
+- ~~Execution adapter~~ **done** — approved remediations now reach AWS Systems Manager
+  (`SendCommand` / `StartAutomationExecution`), polled to a terminal state, with independent
+  re-authorisation, idempotency, undo paths and post-execution verification. Dry-run by default.
+  To run it for real: `EXECUTOR_MODE=live` plus credentials and an `ssm:SendCommand` IAM policy.
 - **Strands Agents / AgentCore** — the rules name these alongside Bedrock. A multi-agent variant
   (triage agent + remediation agent + reviewer) would hit the "multi-agent incident response"
   wording in the Track 1 brief directly.
@@ -72,15 +73,19 @@ poke at.
 ## Current state
 
 ```
-npm test        35 tests, 35 passing
+npm test        54 tests, 54 passing
 npm run eval    203 alerts → 21 incidents → 12 pages
                 94.1% volume removed, 0 false auto-actions, 0 missed incidents
                 exits non-zero if either safety number moves
 node src/export.js   32 static pages, 2 tenants
+EXECUTOR_MODE   dry-run by default; 6 SSM calls composed, 0 refused
 ```
 
 Verified working: correlation, the nine-rule gate, receipts with tamper detection, two tenants
 behaving differently on identical traffic, the console rendering end to end.
 
-Not yet verified: the Bedrock call against real AWS. It is implemented and signed, but until step 2
-above it has never returned a live response.
+Not yet verified against real AWS: **the Bedrock call** and **the Systems Manager call**. Both are
+implemented, signed and tested, but neither has returned a live response — every run so far has used
+the offline proposer and `EXECUTOR_MODE=dry-run`. Step 2 above unblocks both at once, and the IAM
+policy needs `bedrock:InvokeModel` plus `ssm:SendCommand`, `ssm:GetCommandInvocation`,
+`ssm:StartAutomationExecution` and `ssm:GetAutomationExecution`.

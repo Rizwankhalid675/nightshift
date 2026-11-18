@@ -1,27 +1,10 @@
 /**
- * bedrock.js — Amazon Bedrock InvokeModel over plain HTTPS, signed with
- * SigV4 implemented here in node:crypto.
+ * bedrock.js — Amazon Bedrock InvokeModel.
  *
- * Why no SDK: the whole system has zero dependencies, so a judge can clone and
- * run it with nothing but node. That matters more than convenience here —
- * "npm install failed on my machine" is how a submission stops being testable.
- *
- * Credentials come from the standard environment variables:
- *   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN (optional),
- *   AWS_REGION (default us-east-1), BEDROCK_MODEL_ID.
+ * Signing lives in ../aws/sigv4.js, shared with the Systems Manager client so
+ * there is exactly one signing implementation in the codebase.
  */
-import { createHash, createHmac } from "node:crypto";
-import { request } from "node:https";
-
-const SERVICE = "bedrock";
-
-const sha256hex = (s) => createHash("sha256").update(s, "utf8").digest("hex");
-const hmac = (key, s) => createHmac("sha256", key).update(s, "utf8").digest();
-
-/** AWS SigV4 signing key derivation. */
-function signingKey(secret, date, region, service) {
-  return hmac(hmac(hmac(hmac(`AWS4${secret}`, date), region), service), "aws4_request");
-}
+import { signedRequest } from "../aws/sigv4.js";
 
 /**
  * Sign and send one InvokeModel call.
@@ -31,86 +14,22 @@ function signingKey(secret, date, region, service) {
  * @param {string} [o.region]
  * @param {number} [o.timeoutMs]
  */
-export function invokeModel({ modelId, body, region, timeoutMs = 30_000 }) {
-  const accessKey = process.env.AWS_ACCESS_KEY_ID;
-  const secretKey = process.env.AWS_SECRET_ACCESS_KEY;
-  const sessionToken = process.env.AWS_SESSION_TOKEN;
+export async function invokeModel({ modelId, body, region, timeoutMs = 30_000 }) {
   const reg = region || process.env.AWS_REGION || "us-east-1";
-
-  if (!accessKey || !secretKey) {
-    return Promise.reject(
-      new Error(
-        "No AWS credentials in the environment. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, " +
-          "or run with AGENT_PROVIDER=offline to use the deterministic baseline proposer."
-      )
-    );
-  }
-
-  const host = `bedrock-runtime.${reg}.amazonaws.com`;
-  const path = `/model/${encodeURIComponent(modelId)}/invoke`;
-  const payload = JSON.stringify(body);
-
-  const now = new Date();
-  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, ""); // 20261211T120000Z
-  const dateStamp = amzDate.slice(0, 8);
-
-  /** @type {Record<string,string>} */
-  const headers = {
-    "content-type": "application/json",
-    host,
-    "x-amz-date": amzDate,
-    ...(sessionToken ? { "x-amz-security-token": sessionToken } : {}),
-  };
-
-  const signedHeaders = Object.keys(headers).sort().join(";");
-  const canonicalHeaders = Object.keys(headers)
-    .sort()
-    .map((k) => `${k}:${String(headers[k]).trim()}\n`)
-    .join("");
-
-  const canonicalRequest = [
-    "POST",
-    path,
-    "",
-    canonicalHeaders,
-    signedHeaders,
-    sha256hex(payload),
-  ].join("\n");
-
-  const scope = `${dateStamp}/${reg}/${SERVICE}/aws4_request`;
-  const stringToSign = ["AWS4-HMAC-SHA256", amzDate, scope, sha256hex(canonicalRequest)].join("\n");
-  const signature = createHmac("sha256", signingKey(secretKey, dateStamp, reg, SERVICE))
-    .update(stringToSign, "utf8")
-    .digest("hex");
-
-  headers.authorization =
-    `AWS4-HMAC-SHA256 Credential=${accessKey}/${scope}, ` +
-    `SignedHeaders=${signedHeaders}, Signature=${signature}`;
-
-  return new Promise((resolve, reject) => {
-    const req = request(
-      { host, path, method: "POST", headers, timeout: timeoutMs },
-      (res) => {
-        let data = "";
-        res.on("data", (c) => (data += c));
-        res.on("end", () => {
-          if ((res.statusCode ?? 500) >= 300) {
-            reject(new Error(`Bedrock ${res.statusCode}: ${data.slice(0, 400)}`));
-            return;
-          }
-          try {
-            resolve(JSON.parse(data));
-          } catch (e) {
-            reject(new Error(`Bedrock returned non-JSON: ${data.slice(0, 200)}`));
-          }
-        });
-      }
-    );
-    req.on("timeout", () => req.destroy(new Error(`Bedrock call exceeded ${timeoutMs}ms`)));
-    req.on("error", reject);
-    req.write(payload);
-    req.end();
+  const { status, body: text } = await signedRequest({
+    service: "bedrock",
+    region: reg,
+    host: `bedrock-runtime.${reg}.amazonaws.com`,
+    path: `/model/${encodeURIComponent(modelId)}/invoke`,
+    payload: JSON.stringify(body),
+    timeoutMs,
   });
+  if (status >= 300) throw new Error(`Bedrock ${status}: ${text.slice(0, 400)}`);
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`Bedrock returned non-JSON: ${text.slice(0, 200)}`);
+  }
 }
 
 /**

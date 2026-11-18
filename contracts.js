@@ -161,6 +161,9 @@ export const maxSeverity = (a, b) => (SEVERITY_RANK[a] >= SEVERITY_RANK[b] ? a :
  * @property {number} falseAutoRemediations  Auto-actions on incidents labelled benign. MUST be 0.
  * @property {number} missedActionable       Real incidents wrongly suppressed. MUST be 0.
  * @property {number} medianTimeToProposalMs
+ * @property {number} [executed]        Remediations actually carried out (or dry-run composed).
+ * @property {number} [executionRefused] Blocked by the executor's independent re-authorisation.
+ * @property {number} [verifiedResolved] Executions where the alert did not recur.
  * @property {string} model
  */
 
@@ -193,4 +196,4 @@ export function assertRulePack(p) {
   return p;
 }
 
-export const CONTRACT_VERSION = "1.0.0";
+export const CONTRACT_VERSION = "1.1.0";

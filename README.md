@@ -9,6 +9,7 @@ Built for the **AWS MSP AI Hackathon**, Track 1: Run Your MSP Better.
 ```
 203 alerts  →  21 incidents  →  12 pages to a human
                                  6 auto-remediated · 6 held for approval
+                                 6 SSM calls composed · 0 refused by the executor
                                  0 false auto-actions · 0 real incidents missed
 ```
 
@@ -31,7 +32,7 @@ Four criteria, 25% each.
 
 | Criterion | How we meet it | Where |
 |---|---|---|
-| **Technological Implementation** | Bedrock in the live path, signed from scratch with zero dependencies. Around it: a pure-function correlation engine, a nine-rule policy gate, tamper-evident evidence receipts, a two-tenant benchmark and **35 passing tests** including adversarial ones. | [§1](#1-technological-implementation) |
+| **Technological Implementation** | Bedrock in the live path, signed from scratch with zero dependencies. Around it: a pure-function correlation engine, a nine-rule policy gate, tamper-evident evidence receipts, a two-tenant benchmark, a Systems Manager execution layer that re-authorises independently, and **54 passing tests** including adversarial ones. | [§1](#1-technological-implementation) |
 | **Design** | The whole on-call loop in one console: what came in, what was suppressed and why, what the model proposed, what the gate decided, what a human still owes. Multi-tenant from the contracts up — **onboarding a customer is writing a JSON rule pack, not editing code**. | [§2](#2-design) |
 | **Potential Impact** | A reproducible benchmark with a published baseline: **94.1% of alert volume removed, with zero real incidents missed**. Every number regenerates from `npm run eval`. | [§3](#3-potential-impact) |
 | **Innovation / Idea** | The novelty is *where the model sits*. It proposes; code decides. A proposal that cites evidence it was never shown is rejected automatically, and nothing irreversible ever runs unattended. | [§4](#4-innovation--idea) |
@@ -50,14 +51,17 @@ flowchart LR
   E --> B["Amazon Bedrock<br/>InvokeModel (SigV4)"]
   B --> P["Proposal<br/>diagnosis + remediation + citations"]
   P --> G["Policy gate<br/>9 deterministic rules"]
-  G -->|auto| X["Execute<br/>reversible, rate-limited"]
+  G -->|auto| X["Executor<br/>re-authorises independently"]
   G -->|hold| H["Human approval"]
   G -->|reject| R["Rejected<br/>e.g. invented citations"]
-  X --> K[("Receipts<br/>tamper-evident")]
-  H --> K
+  X --> SSM["AWS Systems Manager<br/>SendCommand / Automation"]
+  SSM --> V["Verify<br/>did the alert stop?"]
+  X --> K[("Receipts<br/>chained, tamper-evident")]
+  H --> X
+  V --> K
 ```
 
-### The three layers, and why each exists
+### The four layers, and why each exists
 
 **1. Correlation (`src/correlate.js`) — deterministic, no model.**
 Groups alerts by a normalised signature within a tenant's window. State verbs collapse to `<state>`
@@ -94,6 +98,22 @@ Nine rules, each one an answer to a question a customer will ask in a post-incid
 
 Everything else auto-remediates. Every verdict carries the list of rules that fired, in order.
 
+**4. The executor (`src/execute/`) — AWS Systems Manager.**
+Approved remediations reach real infrastructure through SSM `SendCommand` (run a document against
+tagged instances) or `StartAutomationExecution` (a runbook), both polled to a terminal state,
+because "the command was sent" is not "it worked".
+
+It is built on the assumption that it will one day be asked to do the wrong thing:
+
+| Safeguard | Why |
+|---|---|
+| **Re-authorises from the rule pack** | It does not trust the verdict it was handed. Hand it a forged `auto_remediate` for a region failover and it still refuses. Defence in depth, and a test proves it. |
+| **Idempotent per (incident, remediation)** | An agent that retries does not restart the service four times. A repeat returns the original record. |
+| **Dry-run by default** | Touching infrastructure needs `EXECUTOR_MODE=live` **and** credentials **and** a tenant opt-in. |
+| **Every auto-executable action documents its undo path** | Enforced by a test: no undo, no unattended execution. |
+| **Receipts chain** | The execution receipt carries the input digest of the decision receipt that authorised it, so the trail runs from raw alert to infrastructure change. |
+| **Verification afterwards** | Did alerts matching this signature stop recurring in the window? That is the number a customer actually cares about. |
+
 ### Receipts
 
 Every decision stores the evidence verbatim, its sha256, and a digest over the ordered list.
@@ -105,14 +125,16 @@ not a log line.
 
 ```
 $ npm test
-ℹ tests 35
-ℹ pass 35
+ℹ tests 54
+ℹ pass 54
 ℹ fail 0
 ```
 
 Including: hallucinated citations rejected, irreversible actions never unattended, rate limits
-honoured, critical incidents always held, tenant isolation, receipt tampering detected, and a test
-that asserts the published headline numbers so the README cannot silently drift from the code.
+honoured, critical incidents always held, tenant isolation, receipt tampering detected, a forged
+verdict still refused by the executor, idempotent re-execution, live mode failing loudly rather than
+silently "succeeding" without credentials, and a test that asserts the published headline numbers so
+the README cannot silently drift from the code.
 
 ---
 
@@ -205,11 +227,14 @@ No AWS account, no credentials, no network, no `npm install`. Node 20+ only.
 
 ```bash
 git clone <this repo> && cd nightshift
-npm test                                      # 35 tests
+npm test                                      # 54 tests
 npm run eval                                  # the benchmark, offline baseline
 node src/eval/run.js --tenant acme-retail     # the second tenant
 node src/server.js                            # console on http://localhost:3000
 node src/export.js                            # static export to dist/
+
+# execution is dry-run unless you opt in explicitly:
+EXECUTOR_MODE=live AWS_ACCESS_KEY_ID=... npm run eval
 ```
 
 With Bedrock:
@@ -240,6 +265,8 @@ Start with [`AGENTS.md`](AGENTS.md).
 | The policy gate | `src/policy.js` |
 | Bedrock call + SigV4 | `src/agent/bedrock.js` |
 | Evidence receipts | `src/receipts.js` |
+| SSM execution + re-authorisation | `src/execute/index.js`, `src/execute/ssm.js` |
+| Shared SigV4 signer | `src/aws/sigv4.js` |
 | Benchmark | `src/eval/run.js` |
 | Synthetic traffic + ground truth | `src/synth/generate.js` |
 | Tenant rule packs | `data/tenants/*.json` |
@@ -251,13 +278,15 @@ contracts.js        frozen shapes; every module imports from here
 src/correlate.js    deterministic correlation and classification
 src/policy.js       the gate: 9 rules, pure functions
 src/receipts.js     sha256 evidence and tamper detection
-src/agent/          Bedrock (SigV4) + the offline baseline proposer
+src/agent/          Bedrock + the offline baseline proposer
+src/aws/sigv4.js    one SigV4 implementation, shared by Bedrock and SSM
+src/execute/        Systems Manager execution, re-authorisation, verification
 src/eval/run.js     the benchmark and the release gate
 src/synth/          synthetic alert traffic with ground truth
 src/server.js       the console
 src/export.js       static export
 data/tenants/       one JSON file per customer environment
-tests/              35 tests
+tests/              54 tests
 ```
 
 ## New or significantly updated
@@ -276,9 +305,15 @@ Newly created during the submission period. Full history is in this repository.
   failure patterns. No customer, employer or production data appears anywhere in this repository.
   Seeded, so the numbers reproduce — but a synthetic benchmark is a demonstration of method, not a
   field result.
-- **Remediations are not wired to anything.** The gate decides and records; it does not yet call
-  Systems Manager, ECS or anything that would actually restart a service. The execution adapter is
-  the next piece of work, and it is deliberately last: the decision layer has to be trustworthy first.
+- **The executor has never run against live AWS.** It composes, signs and polls real Systems Manager
+  calls, and the whole path is tested — but every run so far has been `dry-run`, so no SSM API has
+  actually returned a response. The dry-run record shows the exact call that *would* be sent.
+- **Dry-run verification is observational, not causal.** With nothing executed, "did not recur in
+  30 minutes" reports what the alert stream did on its own; it does not show that a remediation
+  worked. The console and the eval both label it that way rather than counting it as a win.
+- **SSM document names are plausible, not provisioned.** `AWS-RunShellScript` is real;
+  `NightShift-RegionFailover` is an example name a customer would create. Nothing auto-executable
+  depends on a document that does not exist.
 - **Ground truth is authored by the same person as the rules.** That is a real bias. An independent
   labelled set, or a replay of anonymised production alerts, would be stronger evidence.
 - **Console state is in-memory.** Approvals do not survive a restart. Fine for a demo, not for

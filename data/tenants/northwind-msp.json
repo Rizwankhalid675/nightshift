@@ -4,7 +4,12 @@
   "correlationWindowSec": 900,
   "flapThreshold": 6,
   "maintenanceWindows": [
-    { "service": "billing-api", "startMinuteUtc": 180, "durationMin": 30, "reason": "nightly billing restart, 03:00-03:30 UTC" }
+    {
+      "service": "billing-api",
+      "startMinuteUtc": 180,
+      "durationMin": 30,
+      "reason": "nightly billing restart, 03:00-03:30 UTC"
+    }
   ],
   "benignPatterns": [
     {
@@ -15,11 +20,129 @@
     }
   ],
   "remediations": [
-    { "id": "rerun-failed-batch", "description": "Re-run the failed sync batch once", "reversible": true,  "blastRadius": "low",    "autoApprove": true,  "maxPerHour": 2 },
-    { "id": "restart-service",    "description": "Rolling restart of the affected service", "reversible": true,  "blastRadius": "medium", "autoApprove": false, "maxPerHour": 1 },
-    { "id": "rotate-logs",        "description": "Rotate and ship logs, free disk",         "reversible": true,  "blastRadius": "low",    "autoApprove": true,  "maxPerHour": 4 },
-    { "id": "scale-out",          "description": "Add one task to the service",             "reversible": true,  "blastRadius": "medium", "autoApprove": false, "maxPerHour": 2 },
-    { "id": "failover-primary",   "description": "Fail over to the standby region",         "reversible": false, "blastRadius": "high",   "autoApprove": false, "maxPerHour": 1 },
-    { "id": "open-ticket",        "description": "Open a ticket for a human, take no action","reversible": true, "blastRadius": "low",    "autoApprove": true,  "maxPerHour": 20 }
+    {
+      "id": "rerun-failed-batch",
+      "description": "Re-run the failed sync batch once",
+      "reversible": true,
+      "blastRadius": "low",
+      "autoApprove": true,
+      "maxPerHour": 2,
+      "executor": {
+        "type": "ssm.sendCommand",
+        "documentName": "AWS-RunShellScript",
+        "targets": [
+          {
+            "Key": "tag:Service",
+            "Values": [
+              "{{service}}"
+            ]
+          }
+        ],
+        "parameters": {
+          "commands": [
+            "/opt/nightshift/bin/rerun-batch --service {{service}} --incident {{incidentId}}"
+          ]
+        },
+        "undo": "the batch is idempotent; a re-run leaves no residue"
+      }
+    },
+    {
+      "id": "restart-service",
+      "description": "Rolling restart of the affected service",
+      "reversible": true,
+      "blastRadius": "medium",
+      "autoApprove": false,
+      "maxPerHour": 1,
+      "executor": {
+        "type": "ssm.automation",
+        "documentName": "AWS-RestartECSService",
+        "parameters": {
+          "ServiceName": [
+            "{{service}}"
+          ],
+          "ClusterName": [
+            "{{tenantId}}"
+          ]
+        },
+        "undo": "the previous task set is retained; roll back by redeploying it"
+      }
+    },
+    {
+      "id": "rotate-logs",
+      "description": "Rotate and ship logs, free disk",
+      "reversible": true,
+      "blastRadius": "low",
+      "autoApprove": true,
+      "maxPerHour": 4,
+      "executor": {
+        "type": "ssm.sendCommand",
+        "documentName": "AWS-RunShellScript",
+        "targets": [
+          {
+            "Key": "tag:Service",
+            "Values": [
+              "{{service}}"
+            ]
+          }
+        ],
+        "parameters": {
+          "commands": [
+            "logrotate -f /etc/logrotate.d/{{service}}"
+          ]
+        },
+        "undo": "rotated logs are shipped before deletion; retrieve them from the archive bucket"
+      }
+    },
+    {
+      "id": "scale-out",
+      "description": "Add one task to the service",
+      "reversible": true,
+      "blastRadius": "medium",
+      "autoApprove": false,
+      "maxPerHour": 2,
+      "executor": {
+        "type": "ssm.automation",
+        "documentName": "AWS-UpdateECSServiceDesiredCount",
+        "parameters": {
+          "ServiceName": [
+            "{{service}}"
+          ],
+          "Delta": [
+            "1"
+          ]
+        },
+        "undo": "scale back in by one task"
+      }
+    },
+    {
+      "id": "failover-primary",
+      "description": "Fail over to the standby region",
+      "reversible": false,
+      "blastRadius": "high",
+      "autoApprove": false,
+      "maxPerHour": 1,
+      "executor": {
+        "type": "ssm.automation",
+        "documentName": "NightShift-RegionFailover",
+        "parameters": {
+          "Service": [
+            "{{service}}"
+          ]
+        },
+        "undo": "NOT automatically reversible; failing back is a manual, planned operation"
+      }
+    },
+    {
+      "id": "open-ticket",
+      "description": "Open a ticket for a human, take no action",
+      "reversible": true,
+      "blastRadius": "low",
+      "autoApprove": true,
+      "maxPerHour": 20,
+      "executor": {
+        "type": "none",
+        "undo": "n/a"
+      }
+    }
   ]
 }

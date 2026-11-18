@@ -80,9 +80,34 @@ open-ticket: Open a ticket for a human, take no action (reversible=true, blast=l
       
     </div>
 
+    <div class="card"><h2>Execution <span class="pill p-hold">dry run</span></h2>
+      <p class="mono">mode dry-run · authorised by policy:unattended · chained to decision 85a08d59b562</p>
+      <p class="mono">EXECUTOR_MODE is not &#39;live&#39;; the call was composed and signed-ready but not sent</p>
+      <pre>{
+  &quot;type&quot;: &quot;ssm.sendCommand&quot;,
+  &quot;documentName&quot;: &quot;AWS-RunShellScript&quot;,
+  &quot;targets&quot;: [
+    {
+      &quot;Key&quot;: &quot;tag:Service&quot;,
+      &quot;Values&quot;: [
+        &quot;order-sync&quot;
+      ]
+    }
+  ],
+  &quot;parameters&quot;: {
+    &quot;commands&quot;: [
+      &quot;/opt/nightshift/bin/rerun-batch --service order-sync --incident inc_bb2f5bfb50e4d4a2&quot;
+    ]
+  },
+  &quot;undo&quot;: &quot;the batch is idempotent; a re-run leaves no residue&quot;
+}</pre>
+           <p class="mono">undo: the batch is idempotent; a re-run leaves no residue</p>
+      <p class="mono">observed: did not recur within 1800s — dry run, so nothing was changed; this only reports what the alert stream did</p>
+    </div>
+
     <div class="card"><h2>Receipt</h2>
       <p class="mono">input digest 85a08d59b562bbe0ff6aa8d3e55f27176b6de2a5661af3dddcddbbaa58898bf3</p>
-      <p class="mono">actor agent:offline:rules-v1 · action auto_remediate:rerun-failed-batch · 2026-11-18T00:31:25.687Z</p>
+      <p class="mono">actor agent:offline:rules-v1 · action auto_remediate:rerun-failed-batch · 2026-11-18T00:39:03.235Z</p>
       <p class="mono">re-verified on load: verified</p>
     </div>
 

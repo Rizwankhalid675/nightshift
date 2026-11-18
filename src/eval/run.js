@@ -19,6 +19,7 @@ import { decide } from "../policy.js";
 import { propose } from "../agent/index.js";
 import { receipt } from "../receipts.js";
 import { generate, stripTruth, truthIndex } from "../synth/generate.js";
+import { execute, Ledger, verifyResolution, recordVerification, MODE } from "../execute/index.js";
 
 const arg = (name, dflt) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -47,6 +48,8 @@ export async function runEval({ tenantId, provider, days = 3, seed = 20261211 })
 
   const timings = [];
   const results = [];
+  const ledger = new Ledger();
+  const execMode = MODE();
   /** @type {{remediationId:string, at:string}[]} */
   const taken = [];
   let model = provider === "offline" ? "offline:rules-v1" : "bedrock";
@@ -57,7 +60,27 @@ export async function runEval({ tenantId, provider, days = 3, seed = 20261211 })
     model = proposal.model;
     const verdict = decide({ proposal, incident: inc, pack, shown, recent: taken, now: inc.lastSeenAt });
     if (verdict.decision === "auto_remediate") taken.push({ remediationId: verdict.remediationId, at: inc.lastSeenAt });
+
+    const decisionReceipt = receipt({
+      incidentId: inc.id,
+      actor: `agent:${proposal.model}`,
+      action: `${verdict.decision}:${verdict.remediationId}`,
+      evidence: shown,
+    });
+
+    // Only an auto_remediate verdict reaches the executor unattended. The
+    // executor re-authorises anyway; that is the point of it.
+    let execution = null;
+    if (verdict.decision === "auto_remediate") {
+      execution = await execute({
+        incident: inc, remediationId: verdict.remediationId, pack, ledger, decisionReceipt,
+      });
+      const later = alerts.filter((a) => Date.parse(a.at) > Date.parse(inc.lastSeenAt));
+      recordVerification(execution, verifyResolution(inc, later), inc);
+    }
+
     results.push({
+      execution,
       incidentId: inc.id,
       service: inc.service,
       severity: inc.severity,
@@ -65,12 +88,7 @@ export async function runEval({ tenantId, provider, days = 3, seed = 20261211 })
       truth: incidentTruth(inc),
       proposal,
       verdict,
-      receipt: receipt({
-        incidentId: inc.id,
-        actor: `agent:${proposal.model}`,
-        action: `${verdict.decision}:${verdict.remediationId}`,
-        evidence: shown,
-      }),
+      receipt: decisionReceipt,
     });
   }
 
@@ -93,6 +111,10 @@ export async function runEval({ tenantId, provider, days = 3, seed = 20261211 })
     falseAutoRemediations,
     missedActionable,
     medianTimeToProposalMs: median(timings),
+    executed: results.filter((r) => r.execution && !["refused", "no_action"].includes(r.execution.status)).length,
+    executionRefused: results.filter((r) => r.execution?.status === "refused").length,
+    verifiedResolved: results.filter((r) => r.execution?.verification?.resolved).length,
+    executorMode: execMode,
     model,
   };
 
@@ -115,6 +137,14 @@ function printReport({ metrics, results, incidents }) {
   row("Held for human approval", metrics.needsApproval);
   row("Rejected by the gate", results.filter((r) => r.verdict.decision === "reject").length);
   row("Median time to proposal", `${metrics.medianTimeToProposalMs} ms`);
+  console.log("  " + "-".repeat(54));
+  row("Executor mode", metrics.executorMode);
+  row("Remediations executed", metrics.executed);
+  row("Refused by the executor", metrics.executionRefused);
+  row(
+    metrics.executorMode === "live" ? "Verified resolved" : "Did not recur (observational)",
+    `${metrics.verifiedResolved}/${metrics.executed}`
+  );
   console.log("  " + "-".repeat(54));
   row("False auto-remediations", `${metrics.falseAutoRemediations}  (must be 0)`);
   row("Missed real incidents", `${metrics.missedActionable}  (must be 0)`);

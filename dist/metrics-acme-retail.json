@@ -1,5 +1,5 @@
 {
-  "runId": "adfc275b",
+  "runId": "c6e49c2b",
   "label": "Acme Retail (managed customer) / offline",
   "alertsIn": 203,
   "incidentsOut": 21,
@@ -10,5 +10,9 @@
   "falseAutoRemediations": 0,
   "missedActionable": 0,
   "medianTimeToProposalMs": 0,
+  "executed": 0,
+  "executionRefused": 0,
+  "verifiedResolved": 3,
+  "executorMode": "dry-run",
   "model": "offline:rules-v1"
 }

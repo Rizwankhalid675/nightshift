@@ -78,9 +78,34 @@ open-ticket: Open a ticket for a human, take no action (reversible=true, blast=l
       
     </div>
 
+    <div class="card"><h2>Execution <span class="pill p-hold">dry run</span></h2>
+      <p class="mono">mode dry-run · authorised by policy:unattended · chained to decision 3b815b89a3b7</p>
+      <p class="mono">EXECUTOR_MODE is not &#39;live&#39;; the call was composed and signed-ready but not sent</p>
+      <pre>{
+  &quot;type&quot;: &quot;ssm.sendCommand&quot;,
+  &quot;documentName&quot;: &quot;AWS-RunShellScript&quot;,
+  &quot;targets&quot;: [
+    {
+      &quot;Key&quot;: &quot;tag:Service&quot;,
+      &quot;Values&quot;: [
+        &quot;log-collector&quot;
+      ]
+    }
+  ],
+  &quot;parameters&quot;: {
+    &quot;commands&quot;: [
+      &quot;logrotate -f /etc/logrotate.d/log-collector&quot;
+    ]
+  },
+  &quot;undo&quot;: &quot;rotated logs are shipped before deletion; retrieve them from the archive bucket&quot;
+}</pre>
+           <p class="mono">undo: rotated logs are shipped before deletion; retrieve them from the archive bucket</p>
+      <p class="mono">observed: did not recur within 1800s — dry run, so nothing was changed; this only reports what the alert stream did</p>
+    </div>
+
     <div class="card"><h2>Receipt</h2>
       <p class="mono">input digest 3b815b89a3b7cdccedd4f0de451d3bbd0c1548cb9fd2c650c2829d1dc6ff966d</p>
-      <p class="mono">actor agent:offline:rules-v1 · action auto_remediate:rotate-logs · 2026-11-18T00:31:25.687Z</p>
+      <p class="mono">actor agent:offline:rules-v1 · action auto_remediate:rotate-logs · 2026-11-18T00:39:03.235Z</p>
       <p class="mono">re-verified on load: verified</p>
     </div>
 

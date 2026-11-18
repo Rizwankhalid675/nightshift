@@ -177,6 +177,26 @@ export function incidentPage(tenantId, data, id) {
         : approved ? `<p class="mono" style="margin-top:12px">approved by ${esc(approved)}</p>` : ""}
     </div>
 
+    ${r.execution ? `<div class="card"><h2>Execution <span class="pill ${
+      r.execution.status === "succeeded" ? "p-auto" : r.execution.status === "refused" ? "p-rej" : "p-hold"
+    }">${esc(r.execution.status.replace(/_/g, " "))}</span></h2>
+      <p class="mono">mode ${esc(r.execution.mode)} · authorised by ${esc(r.execution.authorisedBy)}${
+        r.execution.prevDigest ? ` · chained to decision ${esc(short(r.execution.prevDigest))}` : ""
+      }</p>
+      ${r.execution.reason ? `<p class="mono">${esc(r.execution.reason)}</p>` : ""}
+      ${r.execution.target && r.execution.target.type !== "none"
+        ? `<pre>${esc(JSON.stringify(r.execution.target, null, 2))}</pre>
+           ${r.execution.target.undo ? `<p class="mono">undo: ${esc(r.execution.target.undo)}</p>` : ""}`
+        : '<p class="mono">no infrastructure call for this remediation</p>'}
+      ${r.execution.verification
+        ? `<p class="mono">${r.execution.mode === "live" ? "verified" : "observed"}: ${
+            r.execution.verification.resolved ? "did not recur" : r.execution.verification.recurrences + " recurrence(s)"
+          } within ${r.execution.verification.windowSec}s${
+            r.execution.mode === "live" ? "" : " — dry run, so nothing was changed; this only reports what the alert stream did"
+          }</p>`
+        : ""}
+    </div>` : ""}
+
     <div class="card"><h2>Receipt</h2>
       <p class="mono">input digest ${esc(r.receipt.inputDigest)}</p>
       <p class="mono">actor ${esc(r.receipt.actor)} · action ${esc(r.receipt.action)} · ${esc(r.receipt.at)}</p>
