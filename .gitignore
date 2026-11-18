@@ -13,3 +13,7 @@ video/voice-samples.mp3
 video/narration/
 video/narration.mp3
 video/narration-timings.json
+
+# entry paperwork — personal/eligibility detail, kept local only
+docs/SUBMISSION.md
+docs/devpost-form.md
