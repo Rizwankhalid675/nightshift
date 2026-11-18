@@ -65,8 +65,8 @@ Two of four criteria are partly judged off it — Potential Impact says "based o
 - **A second, independent ground-truth set** to reduce the bias I flagged in the limits.
 - **Screenshots** into `docs/img/` for the README hero.
 
-Say the word and I'll take the execution adapter next — it is the one a judge is most likely to
-poke at.
+The strongest next one is **Strands Agents**: the Track 1 brief says "multi-agent incident response"
+in those words, and right now there is one agent, not several.
 
 ---
 
