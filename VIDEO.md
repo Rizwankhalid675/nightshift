@@ -65,14 +65,18 @@ off a phone or second screen. Improvising always runs long.
 | Time | Beat | Shot |
 |---|---|---|
 | 0:00–0:12 | the problem | dashboard, 203 in / 12 paged |
-| 0:12–0:22 | what it is | one sentence, three layers |
-| 0:22–0:40 | suppression | the panel and its written reasons |
-| 0:40–1:06 | one incident | evidence, hashes, four agents |
-| 1:06–1:42 | **the fabricated citation, caught** | reviewer dissent, gate holds |
-| 1:42–2:08 | **the AWS account, live** | Bedrock call from the console — required by the rules |
-| 2:08–2:26 | the numbers | README, both datasets |
-| 2:26–2:42 | **the failing number, volunteered** | acme tab, 1 false auto-action, explained |
-| 2:42–2:55 | limits and close | hero numbers, live URL |
+| 0:12–0:21 | what it is | one sentence, three layers |
+| 0:21–0:38 | suppression | the panel and its written reasons |
+| 0:38–1:03 | one incident | evidence, hashes, four agents |
+| 1:03–1:37 | **the fabricated citation, caught** | reviewer dissent, gate holds |
+| 1:37–2:01 | **the AWS account, live** | Bedrock call — required by the rules |
+| 2:01–2:18 | reproducible | regenerates byte for byte, no model call |
+| 2:18–2:34 | **the failing number, volunteered** | acme tab, 1 false auto-action, explained |
+| 2:34–2:45 | limits and close | hero numbers |
+
+Reset with `./scripts/video-reset.sh` before every take. It verifies the tests, that the deployed
+site matches the committed run data, and that the site regenerates byte for byte — and refuses
+(exit 1) if any of that is untrue.
 
 Two beats are doing unusual work. **1:06** shows a real model fabricating a citation and
 deterministic code catching it. **2:26** volunteers a number that counts against us, on camera,

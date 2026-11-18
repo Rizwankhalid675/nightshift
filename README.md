@@ -33,7 +33,7 @@ Four criteria, 25% each.
 
 | Criterion | How we meet it | Where |
 |---|---|---|
-| **Technological Implementation** | Bedrock in the live path, signed from scratch with zero dependencies. Around it: a pure-function correlation engine, an eleven-rule policy gate, tamper-evident evidence receipts, four specialist Bedrock agents with an adversarial reviewer, a two-tenant benchmark, a Systems Manager execution layer that re-authorises independently, and **95 passing tests** including fault-injection ones. | [§1](#1-technological-implementation) |
+| **Technological Implementation** | Bedrock in the live path, signed from scratch with zero dependencies. Around it: a pure-function correlation engine, an eleven-rule policy gate, tamper-evident evidence receipts, four specialist Bedrock agents with an adversarial reviewer, a two-tenant benchmark, a Systems Manager execution layer that re-authorises independently, and **108 passing tests** including fault-injection ones. | [§1](#1-technological-implementation) |
 | **Design** | The whole on-call loop in one console: what came in, what was suppressed and why, what the model proposed, what the gate decided, what a human still owes. Multi-tenant from the contracts up — **onboarding a customer is writing a JSON rule pack, not editing code**. | [§2](#2-design) |
 | **Potential Impact** | A reproducible benchmark with a published baseline: **94.1% of alert volume removed, with zero real incidents missed**. Every number regenerates from `npm run eval`. | [§3](#3-potential-impact) |
 | **Innovation / Idea** | The novelty is *where the model sits*. It proposes; code decides. A proposal that cites evidence it was never shown is rejected automatically, and nothing irreversible ever runs unattended. | [§4](#4-innovation--idea) |
@@ -48,6 +48,8 @@ Four criteria, 25% each.
 | **High Level Design document** | [`docs/HLD.md`](docs/HLD.md) |
 | Architecture diagram | [§1](#1-technological-implementation), below |
 | Judging rubric, read from the official rules | [`docs/EVENT.md`](docs/EVENT.md) |
+| **Every metric defined, with its calculation** | [`docs/METRICS.md`](docs/METRICS.md) |
+| The safety claims, asserted as tests | [`tests/safety.test.js`](tests/safety.test.js) |
 | Live run data, for reproducing the hosted site | [`dist-runs/`](dist-runs/) |
 | Demo video | *(link added on submission)* |
 
@@ -494,7 +496,7 @@ No AWS account, no credentials, no network, no `npm install`. Node 20+ only.
 
 ```bash
 git clone <this repo> && cd nightshift
-npm test                                      # 84 tests
+npm test                                      # 108 tests
 npm run eval                                  # the benchmark, offline baseline
 node src/eval/run.js --tenant acme-retail     # the second tenant
 node src/eval/run.js --mode single            # one agent instead of four
@@ -529,7 +531,7 @@ benchmark through either provider so the model's contribution can be measured ra
 
 | Step | Fails the build when |
 |---|---|
-| `npm test` | any of the 84 tests break |
+| `npm test` | any of the 108 tests break |
 | eval, Northwind + Acme | a real incident is suppressed, or a wrong action auto-runs |
 | eval, **held-out traffic** | the safety numbers stop holding on data the rules never saw |
 | eval, single-agent baseline | the baseline regresses |
@@ -599,7 +601,7 @@ src/server.js       the console
 src/export.js       static export
 src/store.js        durable approvals (atomic writes; swap for DynamoDB)
 data/tenants/       one JSON file per customer environment
-tests/              84 tests
+tests/              108 tests
 .github/workflows/  CI: tests + the eval gate + the reviewer assertion
 ```
 
