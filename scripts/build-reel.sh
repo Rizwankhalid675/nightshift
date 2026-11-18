@@ -208,14 +208,18 @@ if [ -n "$NARRATION" ]; then
     fi
     cat >&2 <<'HINT'
 
-  1. Open docs/reel-teleprompter.md — 23 lines, about 2m34s of speaking.
-  2. Play video/nightshift_reel.mp4 beside it.
-  3. QuickTime Player > File > New Audio Recording. One continuous take.
-  4. Start both together; first word when the FIRST CAPTION appears at 0:03,
-     not over the title card.
-  5. Save it, then pass that file's real path to this script.
+  The audio can come from anywhere — a voice service, a voice actor, or your
+  own microphone. The script to give them is docs/narration-script.txt (23
+  lines, 376 words, target 2m34s); docs/narration-script.md has the direction
+  and asks for ~0.5s of silence between lines so the captions can be aligned
+  to the voice.
 
-There is no way around step 3: it needs a person speaking into a microphone.
+  Drop the finished file in ~/Desktop or ~/Downloads and run --latest again,
+  or pass its path directly.
+
+  To record it yourself instead: QuickTime Player > File > New Audio
+  Recording, one continuous take, first word when the FIRST CAPTION appears
+  at 0:03 — not over the title card.
 
 HINT
     exit 1

@@ -199,3 +199,36 @@ test("the voice-service script has one line per caption", () => {
     .filter((s) => s.trim()).length;
   assert.equal(lines, captions, `${lines} narration lines for ${captions} captions`);
 });
+
+/* make-narration.sh runs under whatever /usr/bin/env bash resolves to, and on
+   macOS that is bash 3.2. Bash-4 builtins fail at runtime, after the script
+   has already looked like it started working. */
+test("the narration generator uses nothing newer than bash 3.2", () => {
+  const src = readFileSync("scripts/make-narration.sh", "utf8")
+    .split("\n")
+    .filter((l) => !/^\s*#/.test(l))   // comments may name these; code may not
+    .join("\n");
+  const bashFour = [
+    [/\bmapfile\b|\breadarray\b/, "mapfile/readarray"],
+    [/\[-1\]/, "negative array subscript"],
+    [/declare\s+-A|local\s+-A/, "associative array"],
+    [/\$\{[A-Za-z_][A-Za-z0-9_]*\^\^|\$\{[A-Za-z_][A-Za-z0-9_]*,,/, "case-modification expansion"],
+  ];
+  for (const [re, name] of bashFour) {
+    assert.ok(!re.test(src), `scripts/make-narration.sh uses ${name}, which bash 3.2 does not have`);
+  }
+});
+
+test("the narration generator never puts the key on a command line", () => {
+  const src = readFileSync("scripts/make-narration.sh", "utf8");
+  // the key must reach curl through a header file, not -H "xi-api-key: $KEY"
+  assert.ok(
+    !/-H\s+["']xi-api-key:/.test(src),
+    "the key would appear in the process list; pass it with -H @file instead",
+  );
+  assert.ok(src.includes('-H @"$HDR"'), "expected curl to read its headers from a file");
+  assert.ok(
+    !/echo[^\n]*ELEVENLABS_API_KEY|printf[^\n]*ELEVENLABS_API_KEY[^\n]*>&?[12]?\s*$/m.test(src),
+    "the key must never be echoed",
+  );
+});
