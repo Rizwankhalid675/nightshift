@@ -80,32 +80,49 @@ ffmpeg -y -loglevel error -f concat -safe 0 -i "$LIST" \
   "$OUT/nightshift_silent.mp4"
 echo "wrote $OUT/nightshift_silent.mp4"
 
-# Check the OUTPUT, not the inputs. The frame files were fine while the title
-# card still came out uniformly black in the video; nothing but sampling the
-# built file would have caught it.
-at=0; bad=0
-for s in "${SHOTS[@]}"; do
-  secs="${s##*:}"
-  mid=$(awk -v a="$at" -v d="$secs" 'BEGIN{printf "%.2f", a + d/2}')
-  hex=$(ffmpeg -v error -i "$OUT/nightshift_silent.mp4" -ss "$mid" -frames:v 1 \
-        -vf "format=gray,scale=1:1:flags=area" -f rawvideo - 2>/dev/null | xxd -p | head -1 | cut -c1-2)
-  luma=$((16#${hex:-0}))
-  if [ "$luma" -lt 2 ]; then
-    printf '  BLANK  %-18s at %ss\n' "${s%%:*}" "$mid" >&2
-    bad=1
-  else
-    printf '  ok     %-18s at %-6ss luma %s\n' "${s%%:*}" "$mid" "$luma"
-  fi
-  at=$((at + secs))
-done
-[ "$bad" -eq 0 ] || { echo "a shot rendered blank — refusing to ship this cut" >&2; exit 1; }
-
-# An interrupted ffmpeg leaves a file with no moov atom: right size, unreadable.
 got=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$OUT/nightshift_silent.mp4" 2>/dev/null || true)
 awk -v g="${got:-0}" -v w="$total" 'BEGIN{
   if (g+0 < w-1 || g+0 > w+1) { printf "output is %ss, expected %ss — truncated or unreadable\n", (g==""?"unreadable":g), w; exit 1 }
 }' >&2 || exit 1
 echo "  output reads back at ${got%.*}s"
+
+# A failed probe is not a black frame. The guard used to collapse the two —
+# empty output became luma 0 became "BLANK" — and reported a perfectly good
+# shot as blank because ffmpeg happened not to answer that once. Retry, and
+# if it still will not read, say THAT instead.
+probe_luma() {  # file, seconds -> luma on stdout, empty if unreadable
+  local hex
+  hex=$(ffmpeg -v error -i "$1" -ss "$2" -frames:v 1 \
+        -vf "format=gray,scale=1:1:flags=area" -f rawvideo - 2>/dev/null \
+        | xxd -p | head -1 | cut -c1-2)
+  if [ -z "$hex" ]; then
+    awk 'BEGIN{for(i=0;i<2000000;i++)}'   # brief pause; foreground sleep is unavailable here
+    hex=$(ffmpeg -v error -i "$1" -ss "$2" -frames:v 1 \
+          -vf "format=gray,scale=1:1:flags=area" -f rawvideo - 2>/dev/null \
+          | xxd -p | head -1 | cut -c1-2)
+  fi
+  [ -n "$hex" ] && printf '%d' "$((16#$hex))"
+}
+
+# Check the OUTPUT, not the inputs. The frame files were fine while the title
+# card still came out uniformly black in the video.
+at=0; bad=0
+for s in "${SHOTS[@]}"; do
+  secs="${s##*:}"
+  mid=$(awk -v a="$at" -v d="$secs" 'BEGIN{printf "%.2f", a + d/2}')
+  # || true matters: under set -e a failing command substitution in an
+  # assignment exits the script, which would make the branch below unreachable.
+  luma=$(probe_luma "$OUT/nightshift_silent.mp4" "$mid" || true)
+  if [ -z "$luma" ]; then
+    printf '  UNREADABLE  %-18s at %ss\n' "${s%%:*}" "$mid" >&2; bad=1
+  elif [ "$luma" -lt 2 ]; then
+    printf '  BLANK       %-18s at %ss\n' "${s%%:*}" "$mid" >&2; bad=1
+  else
+    printf '  ok     %-18s at %-6ss luma %s\n' "${s%%:*}" "$mid" "$luma"
+  fi
+  at=$((at + secs))
+done
+[ "$bad" -eq 0 ] || { echo "a shot did not check out — refusing to ship this cut" >&2; exit 1; }
 
 if [ "${1:-}" != "" ]; then
   [ -f "$1" ] || { echo "narration file not found: $1" >&2; exit 1; }

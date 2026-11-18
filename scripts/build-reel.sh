@@ -134,26 +134,51 @@ ffmpeg -y -loglevel error "${inputs[@]}" \
   "$OUT/nightshift_reel.mp4"
 echo "wrote $OUT/nightshift_reel.mp4"
 
+# Confirm the file is complete and readable BEFORE sampling frames out of it,
+# so a half-flushed write cannot masquerade as a rendering fault.
+got=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$OUT/nightshift_reel.mp4" 2>/dev/null || true)
+awk -v g="${got:-0}" -v w="$dur" 'BEGIN{
+  if (g+0 < w-1 || g+0 > w+1) { printf "output is %ss, expected %ss — truncated or unreadable\n", (g==""?"unreadable":g), w; exit 1 }
+}' >&2 || exit 1
+echo "  output reads back at ${got%.*}s"
+
+# A failed probe is not a black frame. The guard used to collapse the two —
+# empty output became luma 0 became "BLANK" — and reported a perfectly good
+# shot as blank because ffmpeg happened not to answer that once. Retry, and
+# if it still will not read, say THAT instead.
+probe_luma() {  # file, seconds -> luma on stdout, empty if unreadable
+  local hex
+  hex=$(ffmpeg -v error -i "$1" -ss "$2" -frames:v 1 \
+        -vf "format=gray,scale=1:1:flags=area" -f rawvideo - 2>/dev/null \
+        | xxd -p | head -1 | cut -c1-2)
+  if [ -z "$hex" ]; then
+    awk 'BEGIN{for(i=0;i<2000000;i++)}'   # brief pause; foreground sleep is unavailable here
+    hex=$(ffmpeg -v error -i "$1" -ss "$2" -frames:v 1 \
+          -vf "format=gray,scale=1:1:flags=area" -f rawvideo - 2>/dev/null \
+          | xxd -p | head -1 | cut -c1-2)
+  fi
+  [ -n "$hex" ] && printf '%d' "$((16#$hex))"
+}
+
 # Check the OUTPUT. A frame file can be perfect while the shot still renders
 # black — that is exactly how the title card failed in the other cut.
 bad=0
 for i in $(seq 0 $((n-1))); do
   s="${SHOTS[$i]}"
   mid=$(awk -v a="$(start_of "$i")" -v d="${s##*:}" -v x="$XF" 'BEGIN{printf "%.2f", a + (d-x)/2}')
-  hex=$(ffmpeg -v error -i "$OUT/nightshift_reel.mp4" -ss "$mid" -frames:v 1 \
-        -vf "format=gray,scale=1:1:flags=area" -f rawvideo - 2>/dev/null | xxd -p | head -1 | cut -c1-2)
-  luma=$((16#${hex:-0}))
-  [ "$luma" -ge 2 ] || { printf '  BLANK  %s at %ss\n' "${s%%:*}" "$mid" >&2; bad=1; }
+  # || true matters: under set -e a failing command substitution in an
+  # assignment exits the script, which would make the branch below unreachable.
+  luma=$(probe_luma "$OUT/nightshift_reel.mp4" "$mid" || true)
+  if [ -z "$luma" ]; then
+    printf '  UNREADABLE  %s at %ss — could not sample the output twice\n' "${s%%:*}" "$mid" >&2
+    bad=1
+  elif [ "$luma" -lt 2 ]; then
+    printf '  BLANK  %s at %ss (luma %s)\n' "${s%%:*}" "$mid" "$luma" >&2
+    bad=1
+  fi
 done
-[ "$bad" -eq 0 ] || { echo "a shot rendered blank — refusing to ship this cut" >&2; exit 1; }
+[ "$bad" -eq 0 ] || { echo "a shot did not check out — refusing to ship this cut" >&2; exit 1; }
 echo "  every shot renders"
-
-# An interrupted ffmpeg leaves a file with no moov atom: right size, unreadable.
-got=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$OUT/nightshift_reel.mp4" 2>/dev/null || true)
-awk -v g="${got:-0}" -v w="$dur" 'BEGIN{
-  if (g+0 < w-1 || g+0 > w+1) { printf "output is %ss, expected %ss — truncated or unreadable\n", (g==""?"unreadable":g), w; exit 1 }
-}' >&2 || exit 1
-echo "  output reads back at ${got%.*}s"
 
 if [ -n "$NARRATION" ]; then
   if [ ! -f "$NARRATION" ]; then
