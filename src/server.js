@@ -18,8 +18,14 @@ import { defaultStore } from "./store.js";
 const PORT = Number(process.env.PORT || 3000);
 const PROVIDER = process.env.AGENT_PROVIDER || "offline";
 
+// Every .json here is a tenant, except the junk other systems leave behind.
+// Dotfiles are excluded deliberately: a tarball built on macOS carries an
+// AppleDouble sidecar ("._northwind-msp.json") for any file with extended
+// attributes, and on Linux that extracts as a real file whose contents begin
+// "Mac OS X". Enumerating it as a tenant crashed the static export with
+// `"Ma"... is not valid JSON`, a long way from the actual cause.
 const tenants = readdirSync(new URL("../data/tenants/", import.meta.url))
-  .filter((f) => f.endsWith(".json"))
+  .filter((f) => f.endsWith(".json") && !f.startsWith("."))
   .map((f) => f.replace(/\.json$/, ""));
 
 /** @type {Map<string, any>} */

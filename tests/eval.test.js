@@ -34,3 +34,20 @@ test("an unknown flag is refused, not ignored", async () => {
   assert.throws(() => assertKnownFlags(["--sett=holdout"]), /Unknown flag --sett/);
   assert.throws(() => assertKnownFlags(["--dataset", "holdout"]), /Unknown flag --dataset/);
 });
+
+test("sidecar and hidden files are not mistaken for tenants", async () => {
+  // A macOS-built tarball carries "._name.json" AppleDouble files. Extracted on
+  // Linux they look like tenants, and their contents start with "Mac OS X", so
+  // the static export died on JSON.parse far from the real cause.
+  const { writeFileSync, unlinkSync } = await import("node:fs");
+  const junk = new URL("../data/tenants/._probe.json", import.meta.url);
+  writeFileSync(junk, "Mac OS X\u0000\u0000sidecar junk");
+  try {
+    const mod = await import(`../src/server.js?tenantprobe=${Date.now()}`);
+    assert.ok(Array.isArray(mod.tenants), "server.js should expose its tenant list");
+    assert.ok(!mod.tenants.some((t) => t.startsWith(".")), `hidden file became a tenant: ${mod.tenants}`);
+    assert.ok(mod.tenants.includes("northwind-msp"));
+  } finally {
+    unlinkSync(junk);
+  }
+});
