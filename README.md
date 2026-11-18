@@ -160,6 +160,32 @@ numbers so the README cannot silently drift from the code.
 
 ---
 
+### AWS deep dive
+
+Everything AWS this project touches, where it lives, and — importantly — what has and has not run
+against a live account.
+
+| AWS surface | What it does here | File | Status |
+|---|---|---|---|
+| **Bedrock `InvokeModel`** | the four specialists: triage, diagnosis, remediation, review | [`src/agent/bedrock.js`](src/agent/bedrock.js), [`src/agent/multi.js`](src/agent/multi.js) | implemented, signed, **not yet run live** |
+| **SigV4** | request signing, written in `node:crypto` — no SDK | [`src/aws/sigv4.js`](src/aws/sigv4.js) | implemented, shared by both clients |
+| **Systems Manager `SendCommand`** | run a document against tagged instances (rotate logs, re-run a batch) | [`src/execute/ssm.js`](src/execute/ssm.js) | implemented, polled to terminal state, **dry-run only** |
+| **SSM `StartAutomationExecution`** | runbook-style remediations (restart a service, scale out) | [`src/execute/ssm.js`](src/execute/ssm.js) | implemented, **dry-run only** |
+| **SSM `GetCommandInvocation` / `GetAutomationExecution`** | poll to a terminal state, because "sent" is not "worked" | [`src/execute/ssm.js`](src/execute/ssm.js) | implemented |
+
+Why no AWS SDK: the whole project installs nothing. A judge clones it and runs it with `node` and
+nothing else — no lockfile resolution, no transitive dependency that broke this week. Signing is
+~60 lines and shared, so there is one implementation to audit rather than one per service.
+
+IAM policy needed to run it live:
+
+```json
+{"Version":"2012-10-17","Statement":[
+  {"Effect":"Allow","Action":["bedrock:InvokeModel"],"Resource":"*"},
+  {"Effect":"Allow","Action":["ssm:SendCommand","ssm:GetCommandInvocation",
+    "ssm:StartAutomationExecution","ssm:GetAutomationExecution"],"Resource":"*"}]}
+```
+
 ## 2. Design
 
 > "Can it be reproduced across different partner and customer environments?"
@@ -185,6 +211,25 @@ Same code, same traffic, different outcomes — because Acme has not declared it
 yet and has opted almost nothing into unattended execution. That is the correct behaviour for a new
 customer: **a tenant you know less about pages you more.** Trust is configuration, and it is earned
 per tenant rather than assumed globally.
+
+### Built to scale
+
+The correlation layer is not only a noise filter, it is the cost control. Only incidents that
+survive it reach a model:
+
+| | This pipeline | One model call per alert |
+|---|---|---|
+| Model calls over the benchmark | **48** | 203 |
+| Reduction | **76.4%** | — |
+| Prompt characters (measured) | 94,024 | ~397,000 |
+| Estimated input cost @ $3/Mtok | **$0.07** | $0.30 |
+
+Reproduce with `npm run impact`. The token figures are an estimate from measured character counts,
+not an invoice — no live Bedrock call has been made.
+
+The ratio holds as volume grows, because suppression happens before inference, not after. Nothing
+is held in process memory between incidents except the idempotency ledger, so the server scales
+horizontally; a real deployment points the ledger at DynamoDB (one interface, `src/execute/index.js`).
 
 The console covers the loop: KPI header, actionable incidents with the model's diagnosis and the
 gate's verdict, a separate panel for everything suppressed *with the reason*, and a detail page
@@ -220,6 +265,21 @@ The last two lines are the ones that matter. A noise filter that also swallows t
 worse than no filter, so the evaluation grades against ground-truth labels the pipeline never sees,
 and `npm run eval` **exits non-zero** if either number is above zero. It is a release gate, not a
 dashboard.
+
+### The business outcome, with its assumptions shown
+
+`npm run impact` prints three blocks, deliberately separated, because they do not deserve equal
+trust:
+
+| Block | Example | How much to trust it |
+|---|---|---|
+| **MEASURED** | 203 alerts → 12 pages; 48 agent calls vs 203; 94,024 prompt characters | Reproducible on any machine |
+| **ESTIMATED** | 23,506 input tokens, $0.07 | Arithmetic on measured characters at a published rate. Not an invoice |
+| **ASSUMED** | 191 pages avoided → **159 on-call hours a month** | Depends entirely on "5 minutes to triage a page". At 2 minutes it is 64 h; at 10, 318 h |
+
+The hours figure is the one an MSP cares about and the one I can least defend, so the tool prints
+the sensitivity next to it rather than picking the flattering number. **The claim that needs no
+assumption at all is 76.4% fewer model calls and zero missed incidents.**
 
 ### What a judge should check
 
@@ -352,6 +412,7 @@ Start with [`AGENTS.md`](AGENTS.md).
 | The four agents and their prompts | `src/agent/roles.js` |
 | Multi-agent orchestration + degradation | `src/agent/multi.js` |
 | Fault injection | `src/eval/faults.js` |
+| Impact and scale model | `src/eval/impact.js` |
 | Deterministic correlation | `src/correlate.js` |
 | The policy gate | `src/policy.js` |
 | Bedrock call + SigV4 | `src/agent/bedrock.js` |

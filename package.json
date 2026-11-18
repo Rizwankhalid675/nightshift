@@ -15,7 +15,8 @@
     "demo:reset": "rm -rf runs && echo 'runs cleared'",
     "compare": "node src/eval/compare.js",
     "build:static": "node src/export.js",
-    "verify": "npm test && node src/eval/run.js && node src/eval/compare.js --assert"
+    "verify": "npm test && node src/eval/run.js && node src/eval/compare.js --assert",
+    "impact": "node src/eval/impact.js"
   },
   "dependencies": {},
   "devDependencies": {}
