@@ -38,8 +38,11 @@ being caught, with the run output on screen. Lead the back half with it, and do 
 | "Suppressed by the deterministic layer — never shown to the model" | same page, lower panel | per-incident reason text |
 | Incident detail | click any incident | evidence with sha256 per item, agent handoff table, gate reasons, receipt |
 | Tenant tabs | header: `northwind-msp` / `acme-retail` | same code, different rule pack |
-| **The dissent, live** | https://webrizz.dev/nightshift/ → any incident held for approval | `verdict=dissent · quoteVerified=false` and the gate reason |
-| **Live Bedrock run** (optional) | AWS CloudShell: `cd ~/ns && AWS_REGION=us-east-2 AGENT_PROVIDER=bedrock node src/eval/run.js` | the run producing those numbers |
+| **The dissent** | https://webrizz.dev/nightshift/incident-northwind-msp-inc_9cf104a9917a538c.html | `verdict=dissent · quoteVerified=false` and the gate reason |
+| **Both datasets** | the GitHub README, "Measured against live Bedrock" | 94.1% / 87.1%, zeros on both |
+
+Everything above is a browser tab. **Nothing in the recording needs the AWS console**, so there is
+no account id to crop and no terminal to tidy.
 
 **The hosted console is now live model output.** Its footer reads
 `bedrock:us.amazon.nova-pro-v1:0 (4 agents) · run 72a81c1b`, the diagnoses are Nova's own prose,
@@ -53,31 +56,31 @@ different run. If a judge asks, that variation is the honest answer and it is in
 
 ---
 
-## The script — say it word for word
+## The script
 
-Roughly 410 words at a normal pace. Read it; improvising always runs long.
+The words live in **[`docs/video-teleprompter.md`](docs/video-teleprompter.md)** — eight beats,
+~410 words, 2:45, with a cue on each beat saying what the browser is doing while you talk. Open it
+on a phone or second screen and read it. Do not improvise; improvising always runs long.
 
-| Time | Say (verbatim) | Show |
+Beat map, for reference:
+
+| Beat | Time | Shot |
 |---|---|---|
-| **0:00–0:12** | "This is three days of alerts from a managed service provider's NOC. Two hundred and three of them. Twelve actually mattered. On-call stopped reading these weeks ago — and that is how real outages get missed." | alert flood scrolling, fast |
-| **0:12–0:22** | "NightShift. Rules decide what deserves attention. Amazon Bedrock decides what is wrong and what to do. And deterministic code decides whether a robot is allowed to touch anything." | dashboard, six tiles |
-| **0:22–0:42** | "A hundred and seventeen of these alerts never reach the model at all. Seventy-one are a benign pattern the sync library logs at ERROR. Sixteen fall inside a nightly maintenance window. Thirty are one probe flapping. Every one of them says why, in writing — so suppression is auditable instead of magic." | suppressed panel, scroll the reasons |
-| **0:42–1:15** | "Here is one real incident. Four alerts, one payments outage. This is everything the model was shown — and nothing else. Every item is hashed. Four agents run in sequence: triage, diagnosis, remediation, and a reviewer whose only job is to disagree. The reviewer must quote the evidence to confirm anything. Then the gate holds it anyway: this tenant never opted restart-service into unattended execution, and the incident is customer-facing. Every decision leaves a receipt that re-verifies on load." | incident page — scroll evidence → handoff table → gate reasons → receipt |
-| **1:15–1:55** | "Now the part I did not plan. Everything you are looking at came from Amazon Nova on Bedrock — the footer names the model and the run. Open the payments outage and look at why it was held back. The reviewer said *confirmed* — and supplied a quote that was not in the evidence. The model fabricated its own citation. Code checked that quote against the source, found it missing, and downgraded the verdict to a dissent, which costs the unattended path at the gate. That is the entire design working against a real model, not a claim about one." | incident page: `verdict=dissent · quoteVerified=false`, then the gate reason `reviewer confirmed but its supporting quote is not present in the evidence`; footer model line |
-| **1:55–2:15** | "Measured, live, on two datasets. Ninety-four per cent of volume gone on the training set. Eighty-seven on a held-out set with services and failures no rule was written for. Zero wrong actions taken unattended. Zero real incidents missed. And on the unfamiliar data it automated less, not more — eleven per cent against twenty-five." | terminal: both summary blocks side by side |
-| **2:15–2:28** | "Same binary, different customer. A second tenant with its own rule pack, its own maintenance windows, its own idea of what a robot may do unsupervised. Nothing here is hardcoded to one environment." | click the `acme-retail` tab |
-| **2:28–2:45** | "The traffic is synthetic and seeded, so you can reproduce every number. Execution is dry-run by default. The limits are in the README, written before you asked. It is public, it is hosted, and it runs on your laptop with nothing but node." | README limits section, then the live URL on screen |
-
----
+| 1 | 0:00–0:12 | dashboard, the 203 / 12 numbers |
+| 2 | 0:12–0:22 | what it is, in one sentence |
+| 3 | 0:22–0:42 | the suppressed panel and its reasons |
+| 4 | 0:42–1:12 | one incident: evidence, hashes, four agents |
+| 5 | **1:12–1:50** | **the fabricated citation, caught** |
+| 6 | 1:50–2:12 | README: both datasets, zeros |
+| 7 | 2:12–2:28 | the second tenant |
+| 8 | 2:28–2:45 | limits, and the live URL |
 
 ## Recording rules that save the take
 
-- **Record the live Bedrock run first** and keep the raw file. It takes about two minutes end to
-  end — cut the waiting, keep the result. If the account loses Bedrock access later, that footage
-  is the only proof you have.
-- Reset to seed state before each take: `./scripts/demo-reset.sh`.
-- Hide notifications, bookmarks, extensions and anything personal. The AWS console shows an account
-  name and an account ID — **crop or blur the top bar** in the CloudShell shot.
+- The hosted pages are static, so there is nothing to reset and nothing that can fail mid-take.
+- Hide notifications and bookmarks (`cmd+shift+B`), close other tabs — tab titles are readable.
+- Claude can drive the browser through the whole path on a timer while you read, so you are not
+  clicking and narrating at the same time. Start recording, then tell Claude to go.
 - Full screen, 1080p, UI at ~125%. Judges watch on laptops, sometimes a phone.
 - Never narrate a spinner. If a step is slow, cut.
 - Say the headline number out loud inside the first fifteen seconds. Most entries bury it.
