@@ -168,3 +168,30 @@ test("every remediation that can auto-execute documents how to undo it", () => {
     }
   }
 });
+
+test("a human-approved action executes and records who authorised it", async () => {
+  // Regression: approving in the console used to record a receipt and stop
+  // there, so the approve button never reached the executor at all.
+  const rec = await execute({
+    incident: incident({ severity: "critical" }),   // unattended would refuse this
+    remediationId: "restart-service",
+    pack,
+    ledger: new Ledger(),
+    approval: { approvedBy: "operator" },
+  });
+  assert.equal(rec.status, "dry_run");
+  assert.equal(rec.authorisedBy, "human:operator");
+  assert.equal(rec.target.documentName, "AWS-RestartECSService");
+  assert.equal(verifyReceipt(rec.receipt).ok, true);
+  assert.equal(rec.receipt.approvedBy, "operator");
+});
+
+test("the same action unattended on that incident is refused", async () => {
+  const rec = await execute({
+    incident: incident({ severity: "critical" }),
+    remediationId: "restart-service",
+    pack,
+    ledger: new Ledger(),
+  });
+  assert.equal(rec.status, "refused");
+});

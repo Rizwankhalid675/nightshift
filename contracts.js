@@ -151,6 +151,7 @@ export const maxSeverity = (a, b) => (SEVERITY_RANK[a] >= SEVERITY_RANK[b] ? a :
  * The headline numbers. Produced by src/eval/run.js, printed in the README.
  * @typedef {Object} RunMetrics
  * @property {string} runId
+ * @property {string} tenantId     Which environment these numbers describe.
  * @property {string} label
  * @property {number} alertsIn
  * @property {number} incidentsOut

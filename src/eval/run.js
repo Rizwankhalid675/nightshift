@@ -112,6 +112,7 @@ export async function runEval({ tenantId, provider, days = 3, seed = 20261211, a
   /** @type {import("../../contracts.js").RunMetrics} */
   const metrics = {
     runId: randomUUID().slice(0, 8),
+    tenantId,
     label: `${pack.displayName} / ${provider}`,
     alertsIn: alerts.length,
     incidentsOut: incidents.length,

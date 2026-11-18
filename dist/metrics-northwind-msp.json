@@ -1,5 +1,6 @@
 {
-  "runId": "595788ef",
+  "runId": "14cb8838",
+  "tenantId": "northwind-msp",
   "label": "Northwind MSP (internal NOC) / offline",
   "alertsIn": 203,
   "incidentsOut": 21,

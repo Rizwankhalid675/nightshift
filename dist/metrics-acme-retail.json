@@ -1,5 +1,6 @@
 {
-  "runId": "9b876492",
+  "runId": "46ce0b3b",
+  "tenantId": "acme-retail",
   "label": "Acme Retail (managed customer) / offline",
   "alertsIn": 203,
   "incidentsOut": 21,

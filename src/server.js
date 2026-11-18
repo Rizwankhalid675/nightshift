@@ -12,6 +12,7 @@ import { createServer } from "node:http";
 import { readFileSync, readdirSync } from "node:fs";
 import { runEval } from "./eval/run.js";
 import { receipt, verifyReceipt, short } from "./receipts.js";
+import { execute, Ledger, verifyResolution, recordVerification } from "./execute/index.js";
 
 const PORT = Number(process.env.PORT || 3000);
 const PROVIDER = process.env.AGENT_PROVIDER || "offline";
@@ -26,6 +27,7 @@ const state = new Map();
 async function load(tenantId) {
   const out = await runEval({ tenantId, provider: PROVIDER });
   out.approvals = new Map();
+  out.ledger = new Ledger();
   state.set(tenantId, out);
   return out;
 }
@@ -259,6 +261,23 @@ export const server = createServer(async (req, res) => {
           incidentId: form.id, actor: "human:operator",
           action: `approved:${r.verdict.remediationId}`, evidence: r.receipt.evidence, approvedBy: "operator",
         });
+        // An approval must actually reach the executor, or the button is a lie.
+        // The executor still re-authorises; a human click is not a bypass.
+        const inc = data.incidents.find((i) => i.id === form.id);
+        if (inc) {
+          r.execution = await execute({
+            incident: inc,
+            remediationId: r.verdict.remediationId,
+            pack: data.pack,
+            ledger: data.ledger,
+            decisionReceipt: r.receipt,
+            approval: { approvedBy: "operator" },
+          });
+          const later = inc.alerts.length
+            ? data.incidents.flatMap((i) => i.alerts).filter((a) => Date.parse(a.at) > Date.parse(inc.lastSeenAt))
+            : [];
+          recordVerification(r.execution, verifyResolution(inc, later), inc);
+        }
       }
       res.writeHead(303, { location: `/incident/${form.id}?tenant=${encodeURIComponent(form.tenant)}` });
       return res.end();
