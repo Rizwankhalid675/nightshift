@@ -1,0 +1,22 @@
+# Render blueprint. Create the service with:
+#   Render dashboard → New → Blueprint → point at this repo
+# No build step and no dependencies, so a deploy is a clone and a start.
+services:
+  - type: web
+    name: nightshift
+    runtime: node
+    plan: free
+    buildCommand: "echo 'no build step: zero dependencies'"
+    startCommand: "node src/server.js"
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: AGENT_PROVIDER
+        value: offline       # switch to "bedrock" once AWS keys are set below
+      - key: AGENT_MODE
+        value: multi
+      - key: EXECUTOR_MODE
+        value: dry-run       # NEVER set this to "live" on a public demo
+      # Set these in the Render dashboard, not here:
+      # AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, BEDROCK_MODEL_ID

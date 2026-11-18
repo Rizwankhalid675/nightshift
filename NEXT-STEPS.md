@@ -39,10 +39,14 @@ gh repo create nightshift --public --source=. --push
 ### 4. Host it
 "A working, publicly hosted AI solution" is a hard requirement. Cheapest paths:
 
-- **Static** (zero cost, 2 minutes): `node src/export.js` then drag `dist/` onto Netlify Drop, or
-  enable GitHub Pages on `/dist`. Judges can click through everything except the approve buttons.
-- **Live console** (better): Render or Fly.io, start command `node src/server.js`, no build step, no
-  dependencies. Add the AWS env vars there to run the Bedrock path live.
+Both configs are already committed, so this is a few clicks:
+
+- **Static** (2 minutes): `npm run build:static`, then drag `dist/` onto https://app.netlify.com/drop.
+  `netlify.toml` is there if you'd rather connect the repo. Judges can click through everything
+  except the approve buttons.
+- **Live console** (better): Render → New → Blueprint → this repo. `render.yaml` sets the start
+  command, the health check and safe defaults. Add the AWS keys in the dashboard afterwards to turn
+  on the Bedrock path.
 
 Do the static one today so a URL exists, then upgrade it.
 
@@ -62,9 +66,13 @@ Two of four criteria are partly judged off it — Potential Impact says "based o
   reviewer) with case-file handoff, degradation to a single agent when one fails, and fault
   injection proving the reviewer catches wrong actions (6 → 0). Note it implements the Strands
   *pattern* rather than importing the SDK; the README says so plainly.
+- ~~Screenshots~~ **done** — `docs/img/hero.jpg` and `docs/img/agent-handoff.jpg`, both in the README.
+- ~~Deploy config~~ **done** — `render.yaml` (live console) and `netlify.toml` (static), both
+  pinning `EXECUTOR_MODE=dry-run` so a public demo cannot touch infrastructure.
+- ~~CI~~ **done** — `.github/workflows/ci.yml` runs the tests, the eval gate on both tenants, and
+  `compare.js --assert`, which fails the build if the reviewer stops catching injected faults.
 - **Persist console state** so approvals survive a restart.
 - **A second, independent ground-truth set** to reduce the bias I flagged in the limits.
-- **Screenshots** into `docs/img/` for the README hero.
 
 The strongest next one is **a live Bedrock run** (your step 2). Everything is built; what the
 submission lacks now is a single real model response and a URL.

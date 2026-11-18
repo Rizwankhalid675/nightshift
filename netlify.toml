@@ -1,0 +1,17 @@
+# Static deployment: the exported console, no server.
+#   npm run build:static   (writes dist/)
+#   then drag dist/ onto https://app.netlify.com/drop, or connect this repo.
+[build]
+  command = "node src/export.js"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+  AGENT_PROVIDER = "offline"
+  AGENT_MODE = "multi"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"

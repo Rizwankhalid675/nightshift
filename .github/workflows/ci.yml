@@ -1,0 +1,42 @@
+name: CI
+
+# The eval is a release gate, not a report: it exits non-zero if a wrong action
+# would have run unattended, or if a real incident was suppressed. That means a
+# regression in the safety layer fails the build like a broken test.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: No dependencies to install
+        run: test ! -s package-lock.json || echo "lockfile present but empty of deps"
+
+      - name: Tests
+        run: npm test
+
+      - name: Safety gate — Northwind (multi-agent)
+        run: node src/eval/run.js --tenant northwind-msp --mode multi
+
+      - name: Safety gate — Acme (second tenant, different rule pack)
+        run: node src/eval/run.js --tenant acme-retail --mode multi
+
+      - name: Safety gate — single agent baseline
+        run: node src/eval/run.js --tenant northwind-msp --mode single
+
+      - name: Reviewer must catch injected faults
+        run: node src/eval/compare.js --assert
+
+      - name: Static export builds
+        run: node src/export.js --out dist && test -f dist/index.html

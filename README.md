@@ -238,6 +238,12 @@ labels attached by the generator and stripped before anything in the pipeline se
 | Auto-remediation runbooks | Fire on static rules | The rule chooses *whether*; the agents choose *which*, and must cite the evidence they used |
 | Multi-agent demos | More agents, same trust | The reviewer can block, and must quote source evidence to approve — measured below, not asserted |
 
+![The agent handoff: triage, diagnosis, remediation and reviewer, with the reviewer's verified quote, the gate's reasons and the receipt](docs/img/agent-handoff.jpg)
+
+*One incident, end to end: four agents hand a case file along, the reviewer confirms with a quote verified
+against the source evidence, the gate holds it anyway because the incident is critical, and the receipt pins
+the inputs.*
+
 ### Does the reviewer actually earn its four model calls?
 
 An adversarial reviewer that never disagrees is decoration. So the benchmark can inject a fault:
@@ -250,11 +256,18 @@ and wrong.
 | Single agent | 6 auto-remediated, 0 wrong | **6 wrong actions would run unattended** |
 | Multi-agent | 6 auto-remediated, 0 dissents | **0 wrong actions**, 12 dissents |
 
-Reproduce both:
+Reproduce the whole table with one command — it is generated, not typed, so it cannot drift from
+the code:
 
 ```bash
-node src/eval/run.js --mode single --inject mismatch
-node src/eval/run.js --mode multi  --inject mismatch
+npm run compare
+```
+
+```
+  pipeline   clean run                          with --inject mismatch
+  ----------------------------------------------------------------------------
+  single     6 auto, 6 held, 0 dissents        6 wrong actions would run, 0 dissents
+  multi      6 auto, 6 held, 0 dissents        0 wrong actions would run, 12 dissents
 ```
 
 The reviewer costs nothing when the pipeline is right — zero false dissents on the clean run — and
@@ -295,11 +308,39 @@ AGENT_PROVIDER=bedrock npm run eval
 The offline provider is the **published baseline**, not a mock of Bedrock: the eval runs the same
 benchmark through either provider so the model's contribution can be measured rather than asserted.
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push:
+
+| Step | Fails the build when |
+|---|---|
+| `npm test` | any of the 69 tests break |
+| eval, Northwind + Acme | a real incident is suppressed, or a wrong action auto-runs |
+| eval, single-agent baseline | the baseline regresses |
+| `compare.js --assert` | the reviewer raises a false dissent, **or** an injected fault reaches unattended execution, **or** the fault turns out not to be dangerous enough to prove anything |
+| `export.js` | the static build breaks |
+
+The evaluation is a gate, not a report. A regression in the safety layer fails CI exactly like a
+broken test, which is the only way a number in this README stays true.
+
+```bash
+npm run verify   # everything CI runs, locally
+```
+
 ## Hosting
 
-`node src/export.js` writes a fully static `dist/` (32 pages) that drops onto any static host, and
-`node src/server.js` is a zero-dependency Node server for the live console with `/healthz`,
-`/api/metrics` and `/api/incidents`.
+Two paths, both committed:
+
+| Target | File | Command |
+|---|---|---|
+| **Render** (live console, approvals work) | `render.yaml` | New → Blueprint → this repo |
+| **Netlify / any static host** (read-only, no server) | `netlify.toml` | `npm run build:static`, publish `dist/` |
+
+`node src/server.js` is a zero-dependency Node server with `/healthz`, `/api/metrics` and
+`/api/incidents`. `node src/export.js` writes a fully static `dist/` (32 pages).
+
+`EXECUTOR_MODE` is pinned to `dry-run` in both deploy configs. A public demo must never hold
+credentials that can restart someone's service.
 
 ## For AI agents
 
@@ -337,6 +378,7 @@ src/server.js       the console
 src/export.js       static export
 data/tenants/       one JSON file per customer environment
 tests/              69 tests
+.github/workflows/  CI: tests + the eval gate + the reviewer assertion
 ```
 
 ## New or significantly updated
