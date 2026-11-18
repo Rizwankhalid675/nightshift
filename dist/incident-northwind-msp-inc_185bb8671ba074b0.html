@@ -49,8 +49,8 @@ form{display:inline}
     <p><a href="./index-northwind-msp.html">&larr; all incidents</a></p>
     <div class="card">
       <h2>payments-gateway · critical · 5 alerts collapsed into one incident</h2>
-      <p>payments-gateway is refusing connections; upstream appears down.</p>
-      <p class="mono">root cause hypothesis: Derived from alert text by the deterministic baseline, not a model.</p>
+      <p>payments-gateway is refusing connections; its upstream appears to be down.</p>
+      <p class="mono">root cause hypothesis: payments-gateway is refusing connections; its upstream appears to be down.</p>
     </div>
 
     <div class="card"><h2>What the model was shown — and nothing else</h2>
@@ -65,11 +65,28 @@ restart-service: Rolling restart of the affected service (reversible=true, blast
 rotate-logs: Rotate and ship logs, free disk (reversible=true, blast=low)
 scale-out: Add one task to the service (reversible=true, blast=medium)
 failover-primary: Fail over to the standby region (reversible=false, blast=high)
-open-ticket: Open a ticket for a human, take no action (reversible=true, blast=low)</pre><p class="mono">prior_incident from correlator:inc_185bb8671ba074b0 · sha256 47cd6811503b</p><pre>5 alerts collapsed into one incident</pre>
+open-ticket: Open a ticket for a human, take no action (reversible=true, blast=low)</pre><p class="mono">prior_incident from correlator:inc_185bb8671ba074b0 · sha256 47cd6811503b</p><pre>5 alerts collapsed into one incident</pre><p class="mono">triage from agent:triage · sha256 326aeb617027</p><pre>category=availability urgency=high
+payments-gateway: 5 alerts in one window, classified availability.</pre><p class="mono">diagnosis from agent:diagnosis · sha256 02cc12e1afa0</p><pre>rootCause=payments-gateway is refusing connections; its upstream appears to be down.
+confidence=0.82
+gaps=none</pre><p class="mono">review from agent:reviewer · sha256 ee4fbd0cb038</p><pre>verdict=confirm quoteVerified=true
+the evidence supports the diagnosis and &quot;restart-service&quot; addresses it</pre>
+    </div>
+
+    <div class="card"><h2>Agent handoff</h2>
+      
+      <table><tr><th>Agent</th><th>Said</th><th>Model</th></tr>
+      <tr><td><strong>triage</strong></td><td>availability · urgency high</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>diagnosis</strong></td><td>payments-gateway is refusing connections; its upstream appears to be down. (confidence 0.82)</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>remediation</strong></td><td>restart-service — availability incidents on payments-gateway are addressed by &quot;restart-service&quot; in this tenant&#39;s runbook.</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>reviewer</strong></td><td>confirm: the evidence supports the diagnosis and &quot;restart-service&quot; addresses it</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr>
+      </table>
+      <p style="margin-top:12px">Reviewer <span class="pill p-auto">confirm</span> the evidence supports the diagnosis and &quot;restart-service&quot; addresses it</p>
+      <p class="mono">supporting quote, verified present in the source evidence:</p><pre>[2026-12-02T14:38:00.000Z] CRITICAL Connection refused to payments-gateway upstream, 100% of requests failing</pre>
     </div>
 
     <div class="card"><h2>Proposal</h2>
-      <p class="mono">model offline:rules-v1 · self-reported confidence 0.86</p>
+      <p class="mono">model offline:multi-agent-v1 · self-reported confidence 0.82</p>
       <p>Proposed remediation: <span class="mono">restart-service</span></p>
       <p class="mono">citations verified against the evidence shown: yes</p>
     </div>
@@ -84,8 +101,8 @@ open-ticket: Open a ticket for a human, take no action (reversible=true, blast=l
     
 
     <div class="card"><h2>Receipt</h2>
-      <p class="mono">input digest 43791ab74c2d6f6503a4756d0e284ab1af2277d0423469c8b0df0912d13d0ecc</p>
-      <p class="mono">actor agent:offline:rules-v1 · action needs_approval:restart-service · 2026-11-18T00:39:03.235Z</p>
+      <p class="mono">input digest 1ceaf89f33a91a29d1108bbe17d6d4405805fa6fc207b9326146cd09e3302966</p>
+      <p class="mono">actor agent:offline:multi-agent-v1 · action needs_approval:restart-service · 2026-11-18T00:46:18.985Z</p>
       <p class="mono">re-verified on load: verified</p>
     </div>
 

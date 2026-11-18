@@ -49,8 +49,8 @@ form{display:inline}
     <p><a href="./index-northwind-msp.html">&larr; all incidents</a></p>
     <div class="card">
       <h2>log-collector · warning · 3 alerts collapsed into one incident</h2>
-      <p>Disk pressure on log-collector: the log volume is above its threshold.</p>
-      <p class="mono">root cause hypothesis: Derived from alert text by the deterministic baseline, not a model.</p>
+      <p>The log volume on log-collector is filling and has crossed its threshold.</p>
+      <p class="mono">root cause hypothesis: The log volume on log-collector is filling and has crossed its threshold.</p>
     </div>
 
     <div class="card"><h2>What the model was shown — and nothing else</h2>
@@ -63,11 +63,28 @@ restart-service: Rolling restart of the affected service (reversible=true, blast
 rotate-logs: Rotate and ship logs, free disk (reversible=true, blast=low)
 scale-out: Add one task to the service (reversible=true, blast=medium)
 failover-primary: Fail over to the standby region (reversible=false, blast=high)
-open-ticket: Open a ticket for a human, take no action (reversible=true, blast=low)</pre><p class="mono">prior_incident from correlator:inc_b47f588d59b04f32 · sha256 10f6f11aa5c3</p><pre>3 alerts collapsed into one incident</pre>
+open-ticket: Open a ticket for a human, take no action (reversible=true, blast=low)</pre><p class="mono">prior_incident from correlator:inc_b47f588d59b04f32 · sha256 10f6f11aa5c3</p><pre>3 alerts collapsed into one incident</pre><p class="mono">triage from agent:triage · sha256 025e24473619</p><pre>category=capacity urgency=low
+log-collector: 3 alerts in one window, classified capacity.</pre><p class="mono">diagnosis from agent:diagnosis · sha256 04489065d06a</p><pre>rootCause=The log volume on log-collector is filling and has crossed its threshold.
+confidence=0.9
+gaps=none</pre><p class="mono">review from agent:reviewer · sha256 e70c5a2dfa3d</p><pre>verdict=confirm quoteVerified=true
+the evidence supports the diagnosis and &quot;rotate-logs&quot; addresses it</pre>
+    </div>
+
+    <div class="card"><h2>Agent handoff</h2>
+      
+      <table><tr><th>Agent</th><th>Said</th><th>Model</th></tr>
+      <tr><td><strong>triage</strong></td><td>capacity · urgency low</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>diagnosis</strong></td><td>The log volume on log-collector is filling and has crossed its threshold. (confidence 0.9)</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>remediation</strong></td><td>rotate-logs — capacity incidents on log-collector are addressed by &quot;rotate-logs&quot; in this tenant&#39;s runbook.</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>reviewer</strong></td><td>confirm: the evidence supports the diagnosis and &quot;rotate-logs&quot; addresses it</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr>
+      </table>
+      <p style="margin-top:12px">Reviewer <span class="pill p-auto">confirm</span> the evidence supports the diagnosis and &quot;rotate-logs&quot; addresses it</p>
+      <p class="mono">supporting quote, verified present in the source evidence:</p><pre>[2026-12-02T19:40:00.000Z] WARNING Disk usage 86% on /var/log exceeds threshold 85%</pre>
     </div>
 
     <div class="card"><h2>Proposal</h2>
-      <p class="mono">model offline:rules-v1 · self-reported confidence 0.90</p>
+      <p class="mono">model offline:multi-agent-v1 · self-reported confidence 0.88</p>
       <p>Proposed remediation: <span class="mono">rotate-logs</span></p>
       <p class="mono">citations verified against the evidence shown: yes</p>
     </div>
@@ -78,7 +95,7 @@ open-ticket: Open a ticket for a human, take no action (reversible=true, blast=l
     </div>
 
     <div class="card"><h2>Execution <span class="pill p-hold">dry run</span></h2>
-      <p class="mono">mode dry-run · authorised by policy:unattended · chained to decision f5ea46406bd0</p>
+      <p class="mono">mode dry-run · authorised by policy:unattended · chained to decision 3f35288ff511</p>
       <p class="mono">EXECUTOR_MODE is not &#39;live&#39;; the call was composed and signed-ready but not sent</p>
       <pre>{
   &quot;type&quot;: &quot;ssm.sendCommand&quot;,
@@ -103,8 +120,8 @@ open-ticket: Open a ticket for a human, take no action (reversible=true, blast=l
     </div>
 
     <div class="card"><h2>Receipt</h2>
-      <p class="mono">input digest f5ea46406bd0bf3bc7073623c253bd9864191492953b7ce802cddd5a71918ae8</p>
-      <p class="mono">actor agent:offline:rules-v1 · action auto_remediate:rotate-logs · 2026-11-18T00:39:03.235Z</p>
+      <p class="mono">input digest 3f35288ff511b9db3f1a65de8780befd3cf2e05c9e67a57cec16a992eb54ecbf</p>
+      <p class="mono">actor agent:offline:multi-agent-v1 · action auto_remediate:rotate-logs · 2026-11-18T00:46:18.985Z</p>
       <p class="mono">re-verified on load: verified</p>
     </div>
 

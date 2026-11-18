@@ -160,6 +160,30 @@ export function incidentPage(tenantId, data, id) {
       ${r.receipt.evidence.map((e) => `<p class="mono">${esc(e.kind)} from ${esc(e.source)} · sha256 ${esc(short(e.digest))}</p><pre>${esc(e.observed)}</pre>`).join("")}
     </div>
 
+    ${r.caseFile ? `<div class="card"><h2>Agent handoff${
+      r.caseFile.degraded ? ' <span class="pill p-hold">degraded to single agent</span>' : ""
+    }</h2>
+      ${r.caseFile.degraded ? `<p class="mono">${esc(r.caseFile.degradedReason ?? "")}</p>` : ""}
+      <table><tr><th>Agent</th><th>Said</th><th>Model</th></tr>
+      ${r.caseFile.turns.map((tn) => {
+        const o = tn.output ?? {};
+        const said = !tn.ok ? `failed: ${tn.error ?? ""}`
+          : tn.role === "triage" ? `${o.category} · urgency ${o.urgency}`
+          : tn.role === "diagnosis" ? `${o.rootCause} (confidence ${o.confidence})${o.evidenceGaps ? ` · gaps: ${o.evidenceGaps}` : ""}`
+          : tn.role === "remediation" ? `${o.remediationId} — ${o.rationale ?? ""}`
+          : `${o.verdict}: ${o.reason ?? ""}`;
+        return `<tr><td><strong>${esc(tn.role)}</strong></td><td>${esc(said)}</td>
+          <td class="mono">${esc(tn.model)} · ${tn.ms}ms</td></tr>`;
+      }).join("")}
+      </table>
+      ${r.review ? `<p style="margin-top:12px">Reviewer <span class="pill ${
+        r.review.verdict === "confirm" ? "p-auto" : "p-hold"
+      }">${esc(r.review.verdict)}</span> ${esc(r.review.reason)}</p>
+      ${r.review.quote
+        ? `<p class="mono">supporting quote, verified present in the source evidence:</p><pre>${esc(r.review.quote)}</pre>`
+        : '<p class="mono">no verified supporting quote — this is why it did not confirm</p>'}` : ""}
+    </div>` : ""}
+
     <div class="card"><h2>Proposal</h2>
       <p class="mono">model ${esc(r.proposal.model)} · self-reported confidence ${r.proposal.confidence.toFixed(2)}</p>
       <p>Proposed remediation: <span class="mono">${esc(r.proposal.remediationId)}</span></p>

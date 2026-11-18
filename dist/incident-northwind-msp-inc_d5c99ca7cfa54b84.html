@@ -50,7 +50,7 @@ form{display:inline}
     <div class="card">
       <h2>order-sync · warning · 7 alerts collapsed into one incident</h2>
       <p>Latency on order-sync is climbing toward the timeout ceiling.</p>
-      <p class="mono">root cause hypothesis: Derived from alert text by the deterministic baseline, not a model.</p>
+      <p class="mono">root cause hypothesis: Latency on order-sync is climbing toward the timeout ceiling.</p>
     </div>
 
     <div class="card"><h2>What the model was shown — and nothing else</h2>
@@ -66,17 +66,34 @@ restart-service: Rolling restart of the affected service (reversible=true, blast
 rotate-logs: Rotate and ship logs, free disk (reversible=true, blast=low)
 scale-out: Add one task to the service (reversible=true, blast=medium)
 failover-primary: Fail over to the standby region (reversible=false, blast=high)
-open-ticket: Open a ticket for a human, take no action (reversible=true, blast=low)</pre><p class="mono">prior_incident from correlator:inc_d5c99ca7cfa54b84 · sha256 5b96d6043e15</p><pre>7 alerts collapsed into one incident</pre>
+open-ticket: Open a ticket for a human, take no action (reversible=true, blast=low)</pre><p class="mono">prior_incident from correlator:inc_d5c99ca7cfa54b84 · sha256 5b96d6043e15</p><pre>7 alerts collapsed into one incident</pre><p class="mono">triage from agent:triage · sha256 ad0b27949113</p><pre>category=performance urgency=low
+order-sync: 7 alerts in one window, classified performance.</pre><p class="mono">diagnosis from agent:diagnosis · sha256 af5a0d1e4ebb</p><pre>rootCause=Latency on order-sync is climbing toward the timeout ceiling.
+confidence=0.82
+gaps=none</pre><p class="mono">review from agent:reviewer · sha256 4460f454061e</p><pre>verdict=confirm quoteVerified=true
+the evidence supports the diagnosis and &quot;scale-out&quot; addresses it</pre>
+    </div>
+
+    <div class="card"><h2>Agent handoff</h2>
+      
+      <table><tr><th>Agent</th><th>Said</th><th>Model</th></tr>
+      <tr><td><strong>triage</strong></td><td>performance · urgency low</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>diagnosis</strong></td><td>Latency on order-sync is climbing toward the timeout ceiling. (confidence 0.82)</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>remediation</strong></td><td>scale-out — performance incidents on order-sync are addressed by &quot;scale-out&quot; in this tenant&#39;s runbook.</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>reviewer</strong></td><td>confirm: the evidence supports the diagnosis and &quot;scale-out&quot; addresses it</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr>
+      </table>
+      <p style="margin-top:12px">Reviewer <span class="pill p-auto">confirm</span> the evidence supports the diagnosis and &quot;scale-out&quot; addresses it</p>
+      <p class="mono">supporting quote, verified present in the source evidence:</p><pre>[2026-12-02T11:05:00.000Z] WARNING Request p95 latency 8.0 s exceeds threshold 8.0 s</pre>
     </div>
 
     <div class="card"><h2>Proposal</h2>
-      <p class="mono">model offline:rules-v1 · self-reported confidence 0.72</p>
+      <p class="mono">model offline:multi-agent-v1 · self-reported confidence 0.82</p>
       <p>Proposed remediation: <span class="mono">scale-out</span></p>
       <p class="mono">citations verified against the evidence shown: yes</p>
     </div>
 
     <div class="card"><h2>Gate decision <span class="pill p-hold">needs approval</span></h2>
-      <ul class="reasons"><li>tenant has not opted &quot;scale-out&quot; into unattended execution</li><li>model confidence 0.72 is below the floor 0.75</li></ul>
+      <ul class="reasons"><li>tenant has not opted &quot;scale-out&quot; into unattended execution</li></ul>
       <p style="margin-top:14px">
              
              </p>
@@ -85,8 +102,8 @@ open-ticket: Open a ticket for a human, take no action (reversible=true, blast=l
     
 
     <div class="card"><h2>Receipt</h2>
-      <p class="mono">input digest 34a7f0cb344d5a4d4321389a59157ebcaa6f738810020124dc88e5adb3725fb9</p>
-      <p class="mono">actor agent:offline:rules-v1 · action needs_approval:scale-out · 2026-11-18T00:39:03.235Z</p>
+      <p class="mono">input digest 192b28f0d375e852b37f2da4704b2216bcc5a23f48171510d8a06e10b9fff315</p>
+      <p class="mono">actor agent:offline:multi-agent-v1 · action needs_approval:scale-out · 2026-11-18T00:46:18.985Z</p>
       <p class="mono">re-verified on load: verified</p>
     </div>
 

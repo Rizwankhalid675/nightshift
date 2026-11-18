@@ -24,7 +24,7 @@ Write what you will *say*, word for word. Reading a script beats improvising eve
 | 0:00-0:15 | "An MSP NOC took 203 alerts in three days. Twelve mattered. On-call stopped reading them weeks ago." | alert flood scrolling |
 | 0:15-0:30 | "NightShift: rules decide what deserves attention, Bedrock decides what is wrong, and code decides whether a robot may touch it." | the console |
 | 0:30-1:45 | Suppressed panel with reasons, then the real outage: evidence shown, proposal, gate holds it, receipt | one unbroken capture |
-| 1:45-2:15 | "94.1% of volume gone, zero real incidents missed. npm run eval exits non-zero if that stops being true." | terminal running the eval |
+| 1:45-2:15 | "94.1% of volume gone, zero missed. And when I hand it a wrong action on purpose, the reviewer catches all six — one agent catches none." | terminal: --inject mismatch, both modes |
 | 2:15-2:35 | "The traffic is synthetic and remediations are not wired to Systems Manager yet. Both are in the README." | the limits section |
 | 2:35–2:45 | Who it's for and what's next. Live URL on screen. | |
 

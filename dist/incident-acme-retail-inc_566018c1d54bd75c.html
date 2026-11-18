@@ -49,8 +49,8 @@ form{display:inline}
     <p><a href="./index-acme-retail.html">&larr; all incidents</a></p>
     <div class="card">
       <h2>log-collector · warning · 4 alerts collapsed into one incident</h2>
-      <p>Disk pressure on log-collector: the log volume is above its threshold.</p>
-      <p class="mono">root cause hypothesis: Derived from alert text by the deterministic baseline, not a model.</p>
+      <p>The log volume on log-collector is filling and has crossed its threshold.</p>
+      <p class="mono">root cause hypothesis: The log volume on log-collector is filling and has crossed its threshold.</p>
     </div>
 
     <div class="card"><h2>What the model was shown — and nothing else</h2>
@@ -61,30 +61,44 @@ window=2026-12-01T19:40:00.000Z..2026-12-01T20:10:00.000Z
 [2026-12-01T20:00:00.000Z] WARNING Disk usage 92% on /var/log exceeds threshold 85%
 [2026-12-01T20:10:00.000Z] WARNING Disk usage 95% on /var/log exceeds threshold 85%</pre><p class="mono">runbook from tenant:acme-retail · sha256 2cd972a3fcb7</p><pre>open-ticket: Open a ticket for a human, take no action (reversible=true, blast=low)
 rerun-failed-batch: Re-run the failed sync batch once (reversible=true, blast=low)
-restart-service: Rolling restart of the affected service (reversible=true, blast=medium)</pre><p class="mono">prior_incident from correlator:inc_566018c1d54bd75c · sha256 02ec9e6363dd</p><pre>4 alerts collapsed into one incident</pre>
+restart-service: Rolling restart of the affected service (reversible=true, blast=medium)</pre><p class="mono">prior_incident from correlator:inc_566018c1d54bd75c · sha256 02ec9e6363dd</p><pre>4 alerts collapsed into one incident</pre><p class="mono">triage from agent:triage · sha256 248094c5b470</p><pre>category=capacity urgency=low
+log-collector: 4 alerts in one window, classified capacity.</pre><p class="mono">diagnosis from agent:diagnosis · sha256 04489065d06a</p><pre>rootCause=The log volume on log-collector is filling and has crossed its threshold.
+confidence=0.9
+gaps=none</pre><p class="mono">review from agent:reviewer · sha256 b210ea8a3d22</p><pre>verdict=confirm quoteVerified=true
+the evidence supports the diagnosis and &quot;open-ticket&quot; addresses it</pre>
+    </div>
+
+    <div class="card"><h2>Agent handoff</h2>
+      
+      <table><tr><th>Agent</th><th>Said</th><th>Model</th></tr>
+      <tr><td><strong>triage</strong></td><td>capacity · urgency low</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>diagnosis</strong></td><td>The log volume on log-collector is filling and has crossed its threshold. (confidence 0.9)</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>remediation</strong></td><td>open-ticket — capacity incidents on log-collector are addressed by &quot;open-ticket&quot; in this tenant&#39;s runbook.</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>reviewer</strong></td><td>confirm: the evidence supports the diagnosis and &quot;open-ticket&quot; addresses it</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr>
+      </table>
+      <p style="margin-top:12px">Reviewer <span class="pill p-auto">confirm</span> the evidence supports the diagnosis and &quot;open-ticket&quot; addresses it</p>
+      <p class="mono">supporting quote, verified present in the source evidence:</p><pre>[2026-12-01T19:40:00.000Z] WARNING Disk usage 86% on /var/log exceeds threshold 85%</pre>
     </div>
 
     <div class="card"><h2>Proposal</h2>
-      <p class="mono">model offline:rules-v1 · self-reported confidence 0.90</p>
+      <p class="mono">model offline:multi-agent-v1 · self-reported confidence 0.60</p>
       <p>Proposed remediation: <span class="mono">open-ticket</span></p>
       <p class="mono">citations verified against the evidence shown: yes</p>
     </div>
 
-    <div class="card"><h2>Gate decision <span class="pill p-auto">auto-remediated</span></h2>
-      <ul class="reasons"><li>&quot;open-ticket&quot; is reversible, low blast radius, opted in, within rate limit and above the confidence floor</li></ul>
-      
+    <div class="card"><h2>Gate decision <span class="pill p-hold">needs approval</span></h2>
+      <ul class="reasons"><li>model confidence 0.60 is below the floor 0.75</li></ul>
+      <p style="margin-top:14px">
+             
+             </p>
     </div>
 
-    <div class="card"><h2>Execution <span class="pill p-hold">no action</span></h2>
-      <p class="mono">mode dry-run · authorised by policy:unattended · chained to decision 05b58d667fba</p>
-      <p class="mono">&quot;open-ticket&quot; has no executor; it records intent only</p>
-      <p class="mono">no infrastructure call for this remediation</p>
-      <p class="mono">observed: did not recur within 1800s — dry run, so nothing was changed; this only reports what the alert stream did</p>
-    </div>
+    
 
     <div class="card"><h2>Receipt</h2>
-      <p class="mono">input digest 05b58d667fbabc8d2d3a8cf58220ce44a865e6a51d4bd2fbb8b8564d6c909e13</p>
-      <p class="mono">actor agent:offline:rules-v1 · action auto_remediate:open-ticket · 2026-11-18T00:39:03.227Z</p>
+      <p class="mono">input digest 7dea39beda903e67dbe9c95b54dcc108287641874f09a2235334fc7078d0d345</p>
+      <p class="mono">actor agent:offline:multi-agent-v1 · action needs_approval:open-ticket · 2026-11-18T00:46:18.976Z</p>
       <p class="mono">re-verified on load: verified</p>
     </div>
 

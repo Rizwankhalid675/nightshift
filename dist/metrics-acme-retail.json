@@ -1,18 +1,22 @@
 {
-  "runId": "c6e49c2b",
+  "runId": "1676be20",
   "label": "Acme Retail (managed customer) / offline",
   "alertsIn": 203,
   "incidentsOut": 21,
   "noiseSuppressed": 3,
   "actionable": 18,
-  "autoRemediated": 3,
-  "needsApproval": 15,
+  "autoRemediated": 0,
+  "needsApproval": 18,
   "falseAutoRemediations": 0,
   "missedActionable": 0,
   "medianTimeToProposalMs": 0,
   "executed": 0,
   "executionRefused": 0,
-  "verifiedResolved": 3,
+  "verifiedResolved": 0,
   "executorMode": "dry-run",
-  "model": "offline:rules-v1"
+  "agentMode": "multi",
+  "injectedFault": "none",
+  "reviewerDissents": 0,
+  "degradedRuns": 0,
+  "model": "offline:multi-agent-v1"
 }

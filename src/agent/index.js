@@ -15,6 +15,7 @@
  */
 import { evidence } from "../receipts.js";
 import { invokeModel, anthropicBody, extractText } from "./bedrock.js";
+import { applyFault } from "../eval/faults.js";
 
 export const DEFAULT_MODEL = process.env.BEDROCK_MODEL_ID || "anthropic.claude-3-5-sonnet-20240620-v1:0";
 
@@ -148,11 +149,14 @@ export async function propose(incident, pack, opts = {}) {
   const t0 = Date.now();
 
   if (provider === "offline") {
-    return { proposal: offlineProposer(incident, pack, shown), shown, ms: Date.now() - t0 };
+    const proposal = offlineProposer(incident, pack, shown);
+    if (opts.inject) proposal.remediationId = applyFault(opts.inject, proposal.remediationId, pack);
+    return { proposal, shown, ms: Date.now() - t0 };
   }
   if (provider !== "bedrock") throw new Error(`Unknown AGENT_PROVIDER "${provider}" (use bedrock or offline)`);
 
   const res = await invokeModel({ modelId, body: anthropicBody(PROMPT(incident, shown)) });
   const proposal = parseProposal(extractText(res), incident, modelId);
+  if (opts.inject) proposal.remediationId = applyFault(opts.inject, proposal.remediationId, pack);
   return { proposal, shown, ms: Date.now() - t0 };
 }

@@ -58,27 +58,29 @@ Two of four criteria are partly judged off it — Potential Impact says "based o
   (`SendCommand` / `StartAutomationExecution`), polled to a terminal state, with independent
   re-authorisation, idempotency, undo paths and post-execution verification. Dry-run by default.
   To run it for real: `EXECUTOR_MODE=live` plus credentials and an `ssm:SendCommand` IAM policy.
-- **Strands Agents / AgentCore** — the rules name these alongside Bedrock. A multi-agent variant
-  (triage agent + remediation agent + reviewer) would hit the "multi-agent incident response"
-  wording in the Track 1 brief directly.
+- ~~Multi-agent~~ **done** — four Bedrock specialists (triage, diagnosis, remediation, adversarial
+  reviewer) with case-file handoff, degradation to a single agent when one fails, and fault
+  injection proving the reviewer catches wrong actions (6 → 0). Note it implements the Strands
+  *pattern* rather than importing the SDK; the README says so plainly.
 - **Persist console state** so approvals survive a restart.
 - **A second, independent ground-truth set** to reduce the bias I flagged in the limits.
 - **Screenshots** into `docs/img/` for the README hero.
 
-The strongest next one is **Strands Agents**: the Track 1 brief says "multi-agent incident response"
-in those words, and right now there is one agent, not several.
+The strongest next one is **a live Bedrock run** (your step 2). Everything is built; what the
+submission lacks now is a single real model response and a URL.
 
 ---
 
 ## Current state
 
 ```
-npm test        54 tests, 54 passing
+npm test        69 tests, 69 passing
 npm run eval    203 alerts → 21 incidents → 12 pages
                 94.1% volume removed, 0 false auto-actions, 0 missed incidents
                 exits non-zero if either safety number moves
 node src/export.js   32 static pages, 2 tenants
 EXECUTOR_MODE   dry-run by default; 6 SSM calls composed, 0 refused
+AGENT_MODE      multi by default; --inject mismatch → 0 wrong actions (single: 6)
 ```
 
 Verified working: correlation, the nine-rule gate, receipts with tamper detection, two tenants

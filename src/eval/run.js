@@ -17,6 +17,7 @@ import { randomUUID } from "node:crypto";
 import { correlate, actionable } from "../correlate.js";
 import { decide } from "../policy.js";
 import { propose } from "../agent/index.js";
+import { proposeMulti } from "../agent/multi.js";
 import { receipt } from "../receipts.js";
 import { generate, stripTruth, truthIndex } from "../synth/generate.js";
 import { execute, Ledger, verifyResolution, recordVerification, MODE } from "../execute/index.js";
@@ -33,7 +34,8 @@ const median = (xs) => {
   return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
 };
 
-export async function runEval({ tenantId, provider, days = 3, seed = 20261211 }) {
+export async function runEval({ tenantId, provider, days = 3, seed = 20261211, agentMode, inject }) {
+  const mode = agentMode || process.env.AGENT_MODE || "multi";
   const pack = JSON.parse(readFileSync(new URL(`../../data/tenants/${tenantId}.json`, import.meta.url), "utf8"));
 
   const withTruth = generate({ tenantId, days, seed });
@@ -54,11 +56,18 @@ export async function runEval({ tenantId, provider, days = 3, seed = 20261211 })
   const taken = [];
   let model = provider === "offline" ? "offline:rules-v1" : "bedrock";
 
+  const caseFiles = [];
   for (const inc of act) {
-    const { proposal, shown, ms } = await propose(inc, pack, { provider });
+    const run =
+      mode === "multi"
+        ? await proposeMulti(inc, pack, { provider, inject })
+        : await propose(inc, pack, { provider, inject });
+    const { proposal, shown, ms } = run;
+    const review = run.review;
+    if (run.caseFile) caseFiles.push(run.caseFile);
     timings.push(ms);
     model = proposal.model;
-    const verdict = decide({ proposal, incident: inc, pack, shown, recent: taken, now: inc.lastSeenAt });
+    const verdict = decide({ proposal, incident: inc, pack, shown, recent: taken, review, now: inc.lastSeenAt });
     if (verdict.decision === "auto_remediate") taken.push({ remediationId: verdict.remediationId, at: inc.lastSeenAt });
 
     const decisionReceipt = receipt({
@@ -81,6 +90,8 @@ export async function runEval({ tenantId, provider, days = 3, seed = 20261211 })
 
     results.push({
       execution,
+      review: review ?? null,
+      caseFile: run.caseFile ?? null,
       incidentId: inc.id,
       service: inc.service,
       severity: inc.severity,
@@ -115,10 +126,14 @@ export async function runEval({ tenantId, provider, days = 3, seed = 20261211 })
     executionRefused: results.filter((r) => r.execution?.status === "refused").length,
     verifiedResolved: results.filter((r) => r.execution?.verification?.resolved).length,
     executorMode: execMode,
+    agentMode: mode,
+    injectedFault: inject || "none",
+    reviewerDissents: results.filter((r) => r.review && r.review.verdict !== "confirm").length,
+    degradedRuns: results.filter((r) => r.caseFile?.degraded).length,
     model,
   };
 
-  return { metrics, results, incidents, pack };
+  return { metrics, results, incidents, pack, caseFiles };
 }
 
 function printReport({ metrics, results, incidents }) {
@@ -136,6 +151,13 @@ function printReport({ metrics, results, incidents }) {
   row("Auto-remediated", metrics.autoRemediated);
   row("Held for human approval", metrics.needsApproval);
   row("Rejected by the gate", results.filter((r) => r.verdict.decision === "reject").length);
+  row("Agent mode", metrics.agentMode === "multi" ? "multi (triage/diagnosis/remediation/review)" : "single");
+  row("Reviewer dissents", metrics.reviewerDissents ?? 0);
+  row("Degraded to single agent", metrics.degradedRuns ?? 0);
+  if (metrics.injectedFault && metrics.injectedFault !== "none") {
+    row("Injected fault", metrics.injectedFault);
+    row("Wrong actions that would run", `${metrics.autoRemediated}  (lower is better)`);
+  }
   row("Median time to proposal", `${metrics.medianTimeToProposalMs} ms`);
   console.log("  " + "-".repeat(54));
   row("Executor mode", metrics.executorMode);
@@ -162,16 +184,18 @@ function printReport({ metrics, results, incidents }) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const tenantId = arg("tenant", "northwind-msp");
+  const agentMode = arg("mode", process.env.AGENT_MODE || "multi");
+  const inject = arg("inject", "none");
   const provider = arg("provider", process.env.AGENT_PROVIDER || "offline");
   const days = Number(arg("days", "3"));
 
-  runEval({ tenantId, provider, days })
+  runEval({ tenantId, provider, days, agentMode, inject })
     .then((out) => {
       printReport(out);
       mkdirSync(new URL("../../runs/", import.meta.url), { recursive: true });
-      const path = new URL(`../../runs/${tenantId}-${provider}-${out.metrics.runId}.json`, import.meta.url);
+      const path = new URL(`../../runs/${tenantId}-${provider}-${agentMode}-${out.metrics.runId}.json`, import.meta.url);
       writeFileSync(path, JSON.stringify(out, null, 2));
-      console.log(`\n  Full run written to runs/${tenantId}-${provider}-${out.metrics.runId}.json\n`);
+      console.log(`\n  Full run written to runs/${tenantId}-${provider}-${agentMode}-${out.metrics.runId}.json\n`);
       const bad = out.metrics.falseAutoRemediations > 0 || out.metrics.missedActionable > 0;
       if (bad) {
         console.error("  GATE FAILED: a safety number is non-zero.\n");

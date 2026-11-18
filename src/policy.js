@@ -29,10 +29,12 @@ export function citationsValid(proposal, shown) {
  * @param {import("../contracts.js").RulePack} o.pack
  * @param {import("../contracts.js").Evidence[]} o.shown     Exactly what the model saw.
  * @param {{remediationId:string, at:string}[]} [o.recent]   Actions already taken, for rate limits.
+ * @param {import("../contracts.js").Review} [o.review]      The adversarial reviewer's verdict, if the
+ *   multi-agent pipeline ran. Absent for single-agent runs.
  * @param {string} [o.now]
  * @returns {import("../contracts.js").Verdict}
  */
-export function decide({ proposal, incident, pack, shown, recent = [], now }) {
+export function decide({ proposal, incident, pack, shown, recent = [], review, now }) {
   /** @type {string[]} */
   const reasons = [];
   const valid = citationsValid(proposal, shown);
@@ -54,6 +56,12 @@ export function decide({ proposal, incident, pack, shown, recent = [], now }) {
     return reject(`incident is classified "${incident.class}", not actionable`);
   }
 
+  // 4. The reviewer can veto outright. If a second agent, looking at the same
+  //    evidence, thinks the action could make things worse, nothing proceeds.
+  if (review?.unsafe) {
+    return reject(`reviewer flagged the action as unsafe: ${review.reason}`);
+  }
+
   // From here the action is legitimate; the question is who authorises it.
   let needsApproval = false;
   const hold = (why) => {
@@ -61,26 +69,32 @@ export function decide({ proposal, incident, pack, shown, recent = [], now }) {
     needsApproval = true;
   };
 
-  // 4. Irreversible actions are never unattended. No exceptions, no override.
+  // 5. Reviewer dissent costs the unattended path. It does not block the
+  //    action; it means a human decides.
+  if (review && review.verdict !== "confirm") {
+    hold(`reviewer dissented: ${review.reason}`);
+  }
+
+  // 6. Irreversible actions are never unattended. No exceptions, no override.
   if (!rem.reversible) hold(`"${rem.id}" is irreversible`);
 
-  // 5. Blast radius.
+  // 7. Blast radius.
   if (rem.blastRadius === "high") hold(`"${rem.id}" has a high blast radius`);
 
-  // 6. Tenant opt-in.
+  // 8. Tenant opt-in.
   if (!rem.autoApprove) hold(`tenant has not opted "${rem.id}" into unattended execution`);
 
-  // 7. Rate limit: an agent in a loop is worse than no agent.
+  // 9. Rate limit: an agent in a loop is worse than no agent.
   const hourAgo = Date.parse(now ?? new Date().toISOString()) - 3_600_000;
   const used = recent.filter((r) => r.remediationId === rem.id && Date.parse(r.at) >= hourAgo).length;
   if (used >= rem.maxPerHour) hold(`rate limit reached for "${rem.id}" (${used}/${rem.maxPerHour} in the last hour)`);
 
-  // 8. The model's own uncertainty.
+  // 10. The model's own uncertainty.
   if (proposal.confidence < CONFIDENCE_FLOOR) {
     hold(`model confidence ${proposal.confidence.toFixed(2)} is below the floor ${CONFIDENCE_FLOOR}`);
   }
 
-  // 9. A customer-facing outage is a human's call, however confident the model is.
+  // 11. A customer-facing outage is a human's call, however confident the model is.
   if (incident.severity === "critical") hold("incident is critical; a human confirms customer-facing actions");
 
   if (needsApproval) {

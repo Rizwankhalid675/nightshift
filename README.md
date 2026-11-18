@@ -18,7 +18,8 @@ Built for the **AWS MSP AI Hackathon**, Track 1: Run Your MSP Better.
 ## Stage One, in one paragraph
 
 **Bedrock is the product, not a garnish.** The deterministic layer decides *what deserves attention*;
-the model decides *what is wrong and what to do about it*. Delete the Bedrock call and there is no
+**four Bedrock agents** decide *what is wrong and what to do about it* — triage, diagnosis,
+remediation and an adversarial reviewer, each handing a case file to the next. Delete the Bedrock call and there is no
 diagnosis, no remediation proposal and nothing for the gate to grade — all that remains is a noise
 filter. The AWS AI service sits in the live path at `src/agent/index.js`, called over SigV4-signed
 Bedrock `InvokeModel` in `src/agent/bedrock.js`. The theme fit is direct: this is the
@@ -32,7 +33,7 @@ Four criteria, 25% each.
 
 | Criterion | How we meet it | Where |
 |---|---|---|
-| **Technological Implementation** | Bedrock in the live path, signed from scratch with zero dependencies. Around it: a pure-function correlation engine, a nine-rule policy gate, tamper-evident evidence receipts, a two-tenant benchmark, a Systems Manager execution layer that re-authorises independently, and **54 passing tests** including adversarial ones. | [§1](#1-technological-implementation) |
+| **Technological Implementation** | Bedrock in the live path, signed from scratch with zero dependencies. Around it: a pure-function correlation engine, a nine-rule policy gate, tamper-evident evidence receipts, four specialist Bedrock agents with an adversarial reviewer, a two-tenant benchmark, a Systems Manager execution layer that re-authorises independently, and **69 passing tests** including fault-injection ones. | [§1](#1-technological-implementation) |
 | **Design** | The whole on-call loop in one console: what came in, what was suppressed and why, what the model proposed, what the gate decided, what a human still owes. Multi-tenant from the contracts up — **onboarding a customer is writing a JSON rule pack, not editing code**. | [§2](#2-design) |
 | **Potential Impact** | A reproducible benchmark with a published baseline: **94.1% of alert volume removed, with zero real incidents missed**. Every number regenerates from `npm run eval`. | [§3](#3-potential-impact) |
 | **Innovation / Idea** | The novelty is *where the model sits*. It proposes; code decides. A proposal that cites evidence it was never shown is rejected automatically, and nothing irreversible ever runs unattended. | [§4](#4-innovation--idea) |
@@ -73,20 +74,39 @@ Same alerts in, identical incidents out, always.
 This also keeps the token bill sane: at MSP volume you cannot afford to send 203 alerts to a model.
 We send 12 incidents.
 
-**2. The agent (`src/agent/`) — Amazon Bedrock.**
-Sees an evidence bundle and nothing else: the alert sample, the tenant's runbook, the correlator's
-notes. Returns strict JSON — diagnosis, root-cause hypothesis, one remediation id from the tenant's
-catalogue, a confidence, and the digests of the evidence it used. It executes nothing.
+**2. The agents (`src/agent/`) — Amazon Bedrock, four of them.**
+Multi-agent incident response, which is the Track 1 brief's own wording:
+
+| Agent | Job | Sees |
+|---|---|---|
+| **triage** | what kind of failure is this, how urgent | alerts + runbook |
+| **diagnosis** | what is actually wrong (prompt specialises per category) | + triage output |
+| **remediation** | which action from *this tenant's* runbook, and why | + diagnosis |
+| **reviewer** | adversarial: does the action follow from the evidence? | + the proposal |
+
+Each turn's output becomes evidence for the next with its own sha256, so the console shows the
+handoff rather than asserting it. Pipeline confidence is the **weakest link**, not the loudest agent.
+
+The reviewer is the reason there are four. A single agent that proposes *and* justifies its own
+proposal will justify anything; a separate agent whose only job is to disagree, that cannot see the
+first agent's confidence, catches the cases where diagnosis and action have quietly come apart.
+
+**And the reviewer is not trusted either.** To confirm, it must quote the evidence verbatim — and
+code checks that the quote is really there, in **source** evidence only. Quoting another agent's
+output back is not corroboration, and a confirmation whose quote cannot be found is automatically
+downgraded to a dissent.
 
 Bedrock is called over plain HTTPS with **SigV4 signed in `node:crypto`** (`src/agent/bedrock.js`).
 No SDK, no `npm install`, nothing to break on a judge's machine.
 
 **3. The gate (`src/policy.js`) — code decides.**
-Nine rules, each one an answer to a question a customer will ask in a post-incident review:
+Eleven rules, each one an answer to a question a customer will ask in a post-incident review:
 
 | Rule | Outcome |
 |---|---|
 | Model cited evidence it was never shown | **reject** — a model that invents its justification is unusable |
+| Reviewer flagged the action as unsafe | **reject** |
+| Reviewer dissented | hold — a second opinion against it costs the unattended path |
 | Remediation is not in this tenant's rule pack | **reject** |
 | Incident was classified as noise | **reject** — nothing acts on suppressed traffic |
 | Action is irreversible | hold for a human, always, no override |
@@ -125,16 +145,18 @@ not a log line.
 
 ```
 $ npm test
-ℹ tests 54
-ℹ pass 54
+ℹ tests 69
+ℹ pass 69
 ℹ fail 0
 ```
 
 Including: hallucinated citations rejected, irreversible actions never unattended, rate limits
 honoured, critical incidents always held, tenant isolation, receipt tampering detected, a forged
 verdict still refused by the executor, idempotent re-execution, live mode failing loudly rather than
-silently "succeeding" without credentials, and a test that asserts the published headline numbers so
-the README cannot silently drift from the code.
+silently "succeeding" without credentials, a reviewer confirmation downgraded when its quote is not
+in the evidence, quoting another agent's output rejected as corroboration, a failing specialist
+degrading to the single agent rather than stopping, and a test that asserts the published headline
+numbers so the README cannot silently drift from the code.
 
 ---
 
@@ -211,9 +233,32 @@ labels attached by the generator and stripped before anything in the pipeline se
 
 | Prior art | What it does | What NightShift does differently |
 |---|---|---|
-| Alert correlation (Opsgenie, BigPanda…) | Dedupes and groups alerts | Correlation is the *cheap* layer here; the model only sees what survives it |
-| "LLM reads your logs" tools | Summarise incidents | Summaries are not decisions. Here the model names an action from a tenant-specific catalogue, and code decides whether it may run |
-| Auto-remediation runbooks | Fire on static rules | The rule chooses *whether*; the model chooses *which*, and must cite the evidence it used |
+| Alert correlation (Opsgenie, BigPanda…) | Dedupes and groups alerts | Correlation is the *cheap* layer here; the agents only see what survives it |
+| "LLM reads your logs" tools | Summarise incidents | Summaries are not decisions. Here an agent names an action from a tenant-specific catalogue, and code decides whether it may run |
+| Auto-remediation runbooks | Fire on static rules | The rule chooses *whether*; the agents choose *which*, and must cite the evidence they used |
+| Multi-agent demos | More agents, same trust | The reviewer can block, and must quote source evidence to approve — measured below, not asserted |
+
+### Does the reviewer actually earn its four model calls?
+
+An adversarial reviewer that never disagrees is decoration. So the benchmark can inject a fault:
+`--inject mismatch` swaps the chosen remediation for a **different action that is also
+auto-approvable**, so the policy gate alone will not save us. The action is plausible, permitted,
+and wrong.
+
+| Pipeline | Clean run | With `--inject mismatch` |
+|---|---|---|
+| Single agent | 6 auto-remediated, 0 wrong | **6 wrong actions would run unattended** |
+| Multi-agent | 6 auto-remediated, 0 dissents | **0 wrong actions**, 12 dissents |
+
+Reproduce both:
+
+```bash
+node src/eval/run.js --mode single --inject mismatch
+node src/eval/run.js --mode multi  --inject mismatch
+```
+
+The reviewer costs nothing when the pipeline is right — zero false dissents on the clean run — and
+catches every injected fault. That is the whole case for multi-agent here, and it is measured.
 
 The idea in one line: **the model proposes, deterministic code decides, and every decision leaves a
 receipt.** That is what makes an unattended agent acceptable to an MSP that is contractually liable
@@ -227,9 +272,11 @@ No AWS account, no credentials, no network, no `npm install`. Node 20+ only.
 
 ```bash
 git clone <this repo> && cd nightshift
-npm test                                      # 54 tests
+npm test                                      # 69 tests
 npm run eval                                  # the benchmark, offline baseline
 node src/eval/run.js --tenant acme-retail     # the second tenant
+node src/eval/run.js --mode single            # one agent instead of four
+node src/eval/run.js --inject mismatch        # hand it a wrong action on purpose
 node src/server.js                            # console on http://localhost:3000
 node src/export.js                            # static export to dist/
 
@@ -261,6 +308,9 @@ Start with [`AGENTS.md`](AGENTS.md).
 | Need | Where |
 |---|---|
 | Contracts and shared types | `contracts.js` |
+| The four agents and their prompts | `src/agent/roles.js` |
+| Multi-agent orchestration + degradation | `src/agent/multi.js` |
+| Fault injection | `src/eval/faults.js` |
 | Deterministic correlation | `src/correlate.js` |
 | The policy gate | `src/policy.js` |
 | Bedrock call + SigV4 | `src/agent/bedrock.js` |
@@ -278,7 +328,7 @@ contracts.js        frozen shapes; every module imports from here
 src/correlate.js    deterministic correlation and classification
 src/policy.js       the gate: 9 rules, pure functions
 src/receipts.js     sha256 evidence and tamper detection
-src/agent/          Bedrock + the offline baseline proposer
+src/agent/          four Bedrock specialists, orchestration, offline baselines
 src/aws/sigv4.js    one SigV4 implementation, shared by Bedrock and SSM
 src/execute/        Systems Manager execution, re-authorisation, verification
 src/eval/run.js     the benchmark and the release gate
@@ -286,7 +336,7 @@ src/synth/          synthetic alert traffic with ground truth
 src/server.js       the console
 src/export.js       static export
 data/tenants/       one JSON file per customer environment
-tests/              54 tests
+tests/              69 tests
 ```
 
 ## New or significantly updated
@@ -296,6 +346,15 @@ Newly created during the submission period. Full history is in this repository.
 ---
 
 ## Honest limits
+
+- **This does not import the Strands SDK.** It implements the Strands "agents as tools" handoff
+  pattern directly on Bedrock, because the project is dependency-free by design. The orchestration
+  shape is the same — narrow agents, explicit handoff, a reviewer that can refuse — but no Strands
+  package is installed and the README does not claim one is.
+- **On a clean benchmark, multi-agent and single-agent produce identical outcomes** (6 auto, 6 held,
+  0 missed). The four-agent pipeline is not faster or more accurate here; its entire measured value
+  is catching wrong actions, which only shows up under fault injection. Four model calls per
+  incident instead of one is a real cost, and on this benchmark it buys exactly one thing.
 
 - **The published numbers are from the offline baseline, not Bedrock.** The Bedrock path is
   implemented and signed, but it has not yet been run against a live AWS account, so no

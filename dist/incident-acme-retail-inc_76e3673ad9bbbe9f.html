@@ -49,8 +49,8 @@ form{display:inline}
     <p><a href="./index-acme-retail.html">&larr; all incidents</a></p>
     <div class="card">
       <h2>catalog-sync · error · 24 alerts collapsed into one incident</h2>
-      <p>A scheduled batch on catalog-sync failed repeatedly and has not self-recovered.</p>
-      <p class="mono">root cause hypothesis: Derived from alert text by the deterministic baseline, not a model.</p>
+      <p>A scheduled batch on catalog-sync is failing repeatedly and not self-recovering.</p>
+      <p class="mono">root cause hypothesis: A scheduled batch on catalog-sync is failing repeatedly and not self-recovering.</p>
     </div>
 
     <div class="card"><h2>What the model was shown — and nothing else</h2>
@@ -63,11 +63,28 @@ window=2026-12-01T00:02:00.000Z..2026-12-01T00:09:40.000Z
 [2026-12-01T00:03:20.000Z] ERROR Skipping creation for item SKU-A1004_B4 - an inactive item already exists
 [2026-12-01T00:03:40.000Z] ERROR Skipping creation for item SKU-A1005_B5 - an inactive item already exists</pre><p class="mono">runbook from tenant:acme-retail · sha256 2cd972a3fcb7</p><pre>open-ticket: Open a ticket for a human, take no action (reversible=true, blast=low)
 rerun-failed-batch: Re-run the failed sync batch once (reversible=true, blast=low)
-restart-service: Rolling restart of the affected service (reversible=true, blast=medium)</pre><p class="mono">prior_incident from correlator:inc_76e3673ad9bbbe9f · sha256 b34ddb84a76c</p><pre>24 alerts collapsed into one incident</pre>
+restart-service: Rolling restart of the affected service (reversible=true, blast=medium)</pre><p class="mono">prior_incident from correlator:inc_76e3673ad9bbbe9f · sha256 b34ddb84a76c</p><pre>24 alerts collapsed into one incident</pre><p class="mono">triage from agent:triage · sha256 ec429acf8e47</p><pre>category=job_failure urgency=medium
+catalog-sync: 24 alerts in one window, classified job_failure.</pre><p class="mono">diagnosis from agent:diagnosis · sha256 3fbf9fd7135b</p><pre>rootCause=A scheduled batch on catalog-sync is failing repeatedly and not self-recovering.
+confidence=0.82
+gaps=none</pre><p class="mono">review from agent:reviewer · sha256 4bf92d75ce72</p><pre>verdict=confirm quoteVerified=true
+the evidence supports the diagnosis and &quot;rerun-failed-batch&quot; addresses it</pre>
+    </div>
+
+    <div class="card"><h2>Agent handoff</h2>
+      
+      <table><tr><th>Agent</th><th>Said</th><th>Model</th></tr>
+      <tr><td><strong>triage</strong></td><td>job_failure · urgency medium</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>diagnosis</strong></td><td>A scheduled batch on catalog-sync is failing repeatedly and not self-recovering. (confidence 0.82)</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>remediation</strong></td><td>rerun-failed-batch — job_failure incidents on catalog-sync are addressed by &quot;rerun-failed-batch&quot; in this tenant&#39;s runbook.</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>reviewer</strong></td><td>confirm: the evidence supports the diagnosis and &quot;rerun-failed-batch&quot; addresses it</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr>
+      </table>
+      <p style="margin-top:12px">Reviewer <span class="pill p-auto">confirm</span> the evidence supports the diagnosis and &quot;rerun-failed-batch&quot; addresses it</p>
+      <p class="mono">supporting quote, verified present in the source evidence:</p><pre>service=catalog-sync severity=error count=24</pre>
     </div>
 
     <div class="card"><h2>Proposal</h2>
-      <p class="mono">model offline:rules-v1 · self-reported confidence 0.82</p>
+      <p class="mono">model offline:multi-agent-v1 · self-reported confidence 0.82</p>
       <p>Proposed remediation: <span class="mono">rerun-failed-batch</span></p>
       <p class="mono">citations verified against the evidence shown: yes</p>
     </div>
@@ -82,8 +99,8 @@ restart-service: Rolling restart of the affected service (reversible=true, blast
     
 
     <div class="card"><h2>Receipt</h2>
-      <p class="mono">input digest b56f1e8d95ffb4c9a7a5b79a145a21e90b0a38a0cc4c4542b4c6f082c5e97b9f</p>
-      <p class="mono">actor agent:offline:rules-v1 · action needs_approval:rerun-failed-batch · 2026-11-18T00:39:03.227Z</p>
+      <p class="mono">input digest 7d1d633ff66cb40ffa04ce2e07b589c81e6b8391f3644b85c772e4a05310ddbc</p>
+      <p class="mono">actor agent:offline:multi-agent-v1 · action needs_approval:rerun-failed-batch · 2026-11-18T00:46:18.976Z</p>
       <p class="mono">re-verified on load: verified</p>
     </div>
 

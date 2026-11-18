@@ -164,6 +164,9 @@ export const maxSeverity = (a, b) => (SEVERITY_RANK[a] >= SEVERITY_RANK[b] ? a :
  * @property {number} [executed]        Remediations actually carried out (or dry-run composed).
  * @property {number} [executionRefused] Blocked by the executor's independent re-authorisation.
  * @property {number} [verifiedResolved] Executions where the alert did not recur.
+ * @property {number} [reviewerDissents]  Proposals the reviewer refused to confirm.
+ * @property {number} [degradedRuns]      Incidents where a specialist failed and we fell back.
+ * @property {string} [agentMode]         "multi" | "single"
  * @property {string} model
  */
 
@@ -196,4 +199,4 @@ export function assertRulePack(p) {
   return p;
 }
 
-export const CONTRACT_VERSION = "1.1.0";
+export const CONTRACT_VERSION = "1.2.0";

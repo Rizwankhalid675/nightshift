@@ -49,8 +49,8 @@ form{display:inline}
     <p><a href="./index-northwind-msp.html">&larr; all incidents</a></p>
     <div class="card">
       <h2>order-sync · error · 16 alerts collapsed into one incident</h2>
-      <p>A scheduled batch on order-sync failed repeatedly and has not self-recovered.</p>
-      <p class="mono">root cause hypothesis: Derived from alert text by the deterministic baseline, not a model.</p>
+      <p>A scheduled batch on order-sync is failing repeatedly and not self-recovering.</p>
+      <p class="mono">root cause hypothesis: A scheduled batch on order-sync is failing repeatedly and not self-recovering.</p>
     </div>
 
     <div class="card"><h2>What the model was shown — and nothing else</h2>
@@ -66,11 +66,28 @@ restart-service: Rolling restart of the affected service (reversible=true, blast
 rotate-logs: Rotate and ship logs, free disk (reversible=true, blast=low)
 scale-out: Add one task to the service (reversible=true, blast=medium)
 failover-primary: Fail over to the standby region (reversible=false, blast=high)
-open-ticket: Open a ticket for a human, take no action (reversible=true, blast=low)</pre><p class="mono">prior_incident from correlator:inc_fb479e3cfbf62876 · sha256 eaf774ccff9f</p><pre>16 alerts collapsed into one incident</pre>
+open-ticket: Open a ticket for a human, take no action (reversible=true, blast=low)</pre><p class="mono">prior_incident from correlator:inc_fb479e3cfbf62876 · sha256 eaf774ccff9f</p><pre>16 alerts collapsed into one incident</pre><p class="mono">triage from agent:triage · sha256 d0fa92e55bbd</p><pre>category=job_failure urgency=medium
+order-sync: 16 alerts in one window, classified job_failure.</pre><p class="mono">diagnosis from agent:diagnosis · sha256 fef98a2b5731</p><pre>rootCause=A scheduled batch on order-sync is failing repeatedly and not self-recovering.
+confidence=0.82
+gaps=none</pre><p class="mono">review from agent:reviewer · sha256 4bf92d75ce72</p><pre>verdict=confirm quoteVerified=true
+the evidence supports the diagnosis and &quot;rerun-failed-batch&quot; addresses it</pre>
+    </div>
+
+    <div class="card"><h2>Agent handoff</h2>
+      
+      <table><tr><th>Agent</th><th>Said</th><th>Model</th></tr>
+      <tr><td><strong>triage</strong></td><td>job_failure · urgency medium</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>diagnosis</strong></td><td>A scheduled batch on order-sync is failing repeatedly and not self-recovering. (confidence 0.82)</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>remediation</strong></td><td>rerun-failed-batch — job_failure incidents on order-sync are addressed by &quot;rerun-failed-batch&quot; in this tenant&#39;s runbook.</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr><tr><td><strong>reviewer</strong></td><td>confirm: the evidence supports the diagnosis and &quot;rerun-failed-batch&quot; addresses it</td>
+          <td class="mono">offline:rules-v1 · 0ms</td></tr>
+      </table>
+      <p style="margin-top:12px">Reviewer <span class="pill p-auto">confirm</span> the evidence supports the diagnosis and &quot;rerun-failed-batch&quot; addresses it</p>
+      <p class="mono">supporting quote, verified present in the source evidence:</p><pre>[2026-12-01T04:05:00.000Z] ERROR Sync batch failed: 15 errors in the last 15 minutes (attempt 1)</pre>
     </div>
 
     <div class="card"><h2>Proposal</h2>
-      <p class="mono">model offline:rules-v1 · self-reported confidence 0.82</p>
+      <p class="mono">model offline:multi-agent-v1 · self-reported confidence 0.82</p>
       <p>Proposed remediation: <span class="mono">rerun-failed-batch</span></p>
       <p class="mono">citations verified against the evidence shown: yes</p>
     </div>
@@ -81,7 +98,7 @@ open-ticket: Open a ticket for a human, take no action (reversible=true, blast=l
     </div>
 
     <div class="card"><h2>Execution <span class="pill p-hold">dry run</span></h2>
-      <p class="mono">mode dry-run · authorised by policy:unattended · chained to decision 45a0f9f6a305</p>
+      <p class="mono">mode dry-run · authorised by policy:unattended · chained to decision 3a74b18054c2</p>
       <p class="mono">EXECUTOR_MODE is not &#39;live&#39;; the call was composed and signed-ready but not sent</p>
       <pre>{
   &quot;type&quot;: &quot;ssm.sendCommand&quot;,
@@ -106,8 +123,8 @@ open-ticket: Open a ticket for a human, take no action (reversible=true, blast=l
     </div>
 
     <div class="card"><h2>Receipt</h2>
-      <p class="mono">input digest 45a0f9f6a3058ff40fba1142b2858f574871b32fb25c4975411ce4805d1e5c2b</p>
-      <p class="mono">actor agent:offline:rules-v1 · action auto_remediate:rerun-failed-batch · 2026-11-18T00:39:03.234Z</p>
+      <p class="mono">input digest 3a74b18054c2e19febcf2d3deaf965fc8ddeac7ccfc476d735545a34c0cbe376</p>
+      <p class="mono">actor agent:offline:multi-agent-v1 · action auto_remediate:rerun-failed-batch · 2026-11-18T00:46:18.984Z</p>
       <p class="mono">re-verified on load: verified</p>
     </div>
 
