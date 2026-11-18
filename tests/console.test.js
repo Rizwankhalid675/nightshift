@@ -85,3 +85,31 @@ test("an action that really changed infrastructure is called that, not softened"
   };
   assert.match(falseAutoDetail("t", data), /changed infrastructure/);
 });
+
+test("the dashboard shows exactly the metrics the run produced", async () => {
+  // Closes the loop between backend and what a judge sees: no tile is
+  // computed twice or typed by hand.
+  const { runEval } = await import("../src/eval/run.js");
+  const { dashboard } = await import("../src/server.js");
+  const data = await runEval({ tenantId: "northwind-msp", provider: "offline", agentMode: "multi" });
+  data.approvals = new Map();
+  const html = dashboard("northwind-msp", data);
+  const m = data.metrics;
+  const reduction = ((1 - m.actionable / m.alertsIn) * 100).toFixed(1);
+
+  for (const [value, label] of [
+    [m.alertsIn, "alerts ingested"],
+    [m.incidentsOut, "incidents after correlation"],
+    [m.actionable, "paged to a human"],
+    [`${reduction}%`, "noise removed"],
+    [m.falseAutoRemediations, "false auto-actions"],
+    [m.missedActionable, "real incidents missed"],
+  ]) {
+    assert.ok(html.includes(`>${value}</div>`), `tile "${label}" does not show ${value}`);
+    assert.ok(html.includes(label), `tile label "${label}" missing`);
+  }
+
+  // The footer must name the run, so a screenshot is traceable to an artefact.
+  assert.ok(html.includes(m.runId), "the dashboard does not name the run id");
+  assert.ok(html.includes(m.model), "the dashboard does not name the model");
+});

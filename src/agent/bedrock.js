@@ -29,7 +29,13 @@ import { signedRequest } from "../aws/sigv4.js";
  * @param {number} [o.timeoutMs]
  * @returns {Promise<object>} Raw Converse response.
  */
-export async function converse({ modelId, prompt, maxTokens = 900, region, timeoutMs = 30_000 }) {
+/**
+ * Inference settings, exported so the run artefact records the configuration
+ * actually used rather than a second copy that can drift from it.
+ */
+export const CONVERSE_DEFAULTS = Object.freeze({ temperature: 0, maxTokens: 900 });
+
+export async function converse({ modelId, prompt, maxTokens = CONVERSE_DEFAULTS.maxTokens, region, timeoutMs = 30_000 }) {
   const reg = region || process.env.AWS_REGION || "us-east-1";
   const { status, body: text } = await signedRequest({
     service: "bedrock",
@@ -38,7 +44,7 @@ export async function converse({ modelId, prompt, maxTokens = 900, region, timeo
     path: `/model/${encodeURIComponent(modelId)}/converse`,
     payload: JSON.stringify({
       messages: [{ role: "user", content: [{ text: prompt }] }],
-      inferenceConfig: { maxTokens, temperature: 0 },
+      inferenceConfig: { maxTokens, temperature: CONVERSE_DEFAULTS.temperature },
     }),
     timeoutMs,
   });

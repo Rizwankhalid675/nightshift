@@ -21,6 +21,9 @@ import { proposeMulti } from "../agent/multi.js";
 import { receipt } from "../receipts.js";
 import { generate, stripTruth, truthIndex } from "../synth/generate.js";
 import { execute, Ledger, verifyResolution, recordVerification, MODE } from "../execute/index.js";
+import { CONVERSE_DEFAULTS } from "../agent/bedrock.js";
+import { DEFAULT_MODEL } from "../agent/index.js";
+import { CONTRACT_VERSION } from "../../contracts.js";
 
 /** Flags this script understands. Anything else is a typo worth shouting about. */
 export const KNOWN_FLAGS = ["tenant", "mode", "inject", "set", "provider", "days"];
@@ -64,6 +67,7 @@ const median = (xs) => {
 
 export async function runEval({ tenantId, provider, days = 3, seed = 20261211, agentMode, inject, set = "train" }) {
   const mode = agentMode || process.env.AGENT_MODE || "multi";
+  const startedAtMs = Date.now();
   const pack = JSON.parse(readFileSync(new URL(`../../data/tenants/${tenantId}.json`, import.meta.url), "utf8"));
 
   const withTruth = generate({ tenantId, days, seed, set });
@@ -169,7 +173,35 @@ export async function runEval({ tenantId, provider, days = 3, seed = 20261211, a
     model,
   };
 
-  return { metrics, results, incidents, pack, caseFiles };
+  /**
+   * Everything needed to audit or reproduce this run without rerunning it:
+   * when it ran, what configuration produced it, and which code shape wrote it.
+   * `results`, `incidents` and `pack` already carry the inputs, the agent
+   * outputs, the verdicts, the receipts and the verification outcomes.
+   */
+  const meta = {
+    startedAt: new Date(startedAtMs).toISOString(),
+    finishedAt: new Date().toISOString(),
+    durationMs: Date.now() - startedAtMs,
+    contractVersion: CONTRACT_VERSION,
+    node: process.version,
+    provider,
+    agentMode: mode,
+    dataset: set,
+    generator: { seed, days, startDate: "2026-12-01" },
+    inference:
+      provider === "bedrock"
+        ? {
+            api: "bedrock-runtime Converse",
+            modelId: DEFAULT_MODEL,
+            region: process.env.AWS_REGION || "us-east-1",
+            ...CONVERSE_DEFAULTS,
+          }
+        : { api: "offline", modelId: "offline:rules-v1" },
+    executorMode: execMode,
+  };
+
+  return { meta, metrics, results, incidents, pack, caseFiles };
 }
 
 function printReport({ metrics, results, incidents }) {

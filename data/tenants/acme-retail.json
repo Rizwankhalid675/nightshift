@@ -1,6 +1,7 @@
 {
   "tenantId": "acme-retail",
   "displayName": "Acme Retail (managed customer)",
+  "notes": "Newly onboarded customer: benign-pattern suppression is NOT yet configured, deliberately. northwind-msp declares benign-inactive-skip and suppresses that traffic; this tenant does not, so the same alerts reach the model. That is why this tenant reports a non-zero false auto-action counter: 23 alerts of library noise are classified actionable, the model declines to repair anything and proposes open-ticket, and the gate allows that unattended because a ticket is reversible, zero blast radius and opted in. No infrastructure is touched. Kept as-is to show what the gate does for a tenant that has not been tuned.",
   "correlationWindowSec": 600,
   "flapThreshold": 4,
   "maintenanceWindows": [
