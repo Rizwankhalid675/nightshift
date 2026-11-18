@@ -92,6 +92,9 @@ tr:hover td{background:#1b222c}
 pre{background:#0b0f14;border:1px solid var(--line);border-radius:8px;padding:11px 13px;overflow-x:auto;
 font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:#c9d1d9;white-space:pre-wrap;word-break:break-word}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--mut)}
+/* An unverified reviewer quote must not look like corroborating evidence. */
+.mono.warn{color:var(--warn,#d29922)}
+pre.warn{border-color:#5a4214;background:#1c1710}
 ul.reasons{margin:6px 0 0;padding-left:18px}ul.reasons li{margin:3px 0}
 button{background:var(--acc);color:#04121f;border:0;border-radius:7px;padding:8px 14px;font-weight:650;cursor:pointer;font-size:13px}
 button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
@@ -119,6 +122,29 @@ const verdictPill = (d) =>
   d === "auto_remediate" ? '<span class="pill p-auto">auto-remediated</span>'
   : d === "needs_approval" ? '<span class="pill p-hold">needs approval</span>'
   : '<span class="pill p-rej">rejected</span>';
+
+/**
+ * How the reviewer's quote is presented.
+ *
+ * Branch on whether the quote VERIFIED, never on whether one exists. A model
+ * that fabricates a citation still supplies a quote — a non-empty one — so
+ * keying off presence printed "verified present in the source evidence" three
+ * lines under a dissent saying the opposite. That contradiction appeared on a
+ * live run and on the deployed console, in the exact panel this project asks
+ * to be trusted on.
+ *
+ * The unverified case shows the quote rather than hiding it: what the model
+ * claimed to be quoting is the interesting part.
+ */
+export function reviewerQuoteBlock(review) {
+  if (review.quote && review.quoteVerified) {
+    return `<p class="mono">supporting quote, verified present in the source evidence:</p><pre>${esc(review.quote)}</pre>`;
+  }
+  if (review.quote) {
+    return `<p class="mono warn">the quote it offered is NOT in the source evidence — this is why it did not confirm:</p><pre class="warn">${esc(review.quote)}</pre>`;
+  }
+  return '<p class="mono">no supporting quote was offered — this is why it did not confirm</p>';
+}
 
 export function dashboard(tenantId, data) {
   const m = data.metrics;
@@ -206,9 +232,7 @@ export function incidentPage(tenantId, data, id) {
       ${r.review ? `<p style="margin-top:12px">Reviewer <span class="pill ${
         r.review.verdict === "confirm" ? "p-auto" : "p-hold"
       }">${esc(r.review.verdict)}</span> ${esc(r.review.reason)}</p>
-      ${r.review.quote
-        ? `<p class="mono">supporting quote, verified present in the source evidence:</p><pre>${esc(r.review.quote)}</pre>`
-        : '<p class="mono">no verified supporting quote — this is why it did not confirm</p>'}` : ""}
+      ${reviewerQuoteBlock(r.review)}` : ""}
     </div>` : ""}
 
     <div class="card"><h2>Proposal</h2>

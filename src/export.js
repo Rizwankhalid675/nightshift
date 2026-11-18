@@ -8,7 +8,7 @@
  *
  *   node src/export.js [--provider offline] [--out dist]
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { runEval } from "./eval/run.js";
 import { dashboard, incidentPage, tenants } from "./server.js";
 
@@ -16,11 +16,34 @@ const arg = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i > -1 
 const provider = arg("provider", process.env.AGENT_PROVIDER || "offline");
 const out = arg("out", "dist");
 
+/**
+ * Render from a previously saved run instead of calling the model again.
+ *
+ *   node src/export.js --from dist-runs --out dist
+ *
+ * This exists because a template bug was found in a deployed page and fixing
+ * it meant re-rendering — which, without this, meant a fresh Bedrock run with
+ * different numbers, invalidating a demo recorded against the old one. A
+ * published artefact you cannot regenerate byte-for-byte is not auditable.
+ */
+const fromDir = arg("from", null);
+
+/** Where complete run data is written, so every rendered page can be reproduced. */
+const runsOut = arg("save-runs", `${out}-runs`);
+
 mkdirSync(out, { recursive: true });
+if (!fromDir) mkdirSync(runsOut, { recursive: true });
 let pages = 0;
 
 for (const tenantId of tenants) {
-  const data = await runEval({ tenantId, provider });
+  let data;
+  if (fromDir) {
+    data = JSON.parse(readFileSync(`${fromDir}/run-${tenantId}.json`, "utf8"));
+  } else {
+    data = await runEval({ tenantId, provider });
+    // Written before rendering: if rendering throws, the expensive part survives.
+    writeFileSync(`${runsOut}/run-${tenantId}.json`, JSON.stringify(data, null, 2));
+  }
   data.approvals = new Map();
 
   const fix = (html) =>

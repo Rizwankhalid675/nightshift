@@ -51,3 +51,34 @@ test("sidecar and hidden files are not mistaken for tenants", async () => {
     unlinkSync(junk);
   }
 });
+
+test("a rendered site can be reproduced from its saved run, byte for byte", async () => {
+  // Auditability, and a practical lesson: a template bug was found in a
+  // deployed page, and without this, fixing it meant a fresh model run with
+  // different numbers — invalidating a demo recorded against the old one.
+  const { mkdtempSync, rmSync, readdirSync, readFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { execFileSync } = await import("node:child_process");
+
+  const base = mkdtempSync(join(tmpdir(), "nightshift-export-"));
+  const d1 = join(base, "a"), runs = join(base, "runs"), d2 = join(base, "b");
+  const script = new URL("../src/export.js", import.meta.url).pathname;
+  try {
+    execFileSync(process.execPath, [script, "--out", d1, "--save-runs", runs], { stdio: "pipe" });
+    execFileSync(process.execPath, [script, "--from", runs, "--out", d2], { stdio: "pipe" });
+
+    const a = readdirSync(d1).sort();
+    assert.deepEqual(a, readdirSync(d2).sort(), "re-render produced a different set of files");
+    assert.ok(a.length > 10, "export produced suspiciously few files");
+    for (const f of a) {
+      assert.equal(
+        readFileSync(join(d1, f), "utf8"),
+        readFileSync(join(d2, f), "utf8"),
+        `${f} differs when re-rendered from the saved run`
+      );
+    }
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
