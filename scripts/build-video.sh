@@ -100,6 +100,13 @@ for s in "${SHOTS[@]}"; do
 done
 [ "$bad" -eq 0 ] || { echo "a shot rendered blank — refusing to ship this cut" >&2; exit 1; }
 
+# An interrupted ffmpeg leaves a file with no moov atom: right size, unreadable.
+got=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$OUT/nightshift_silent.mp4" 2>/dev/null || true)
+awk -v g="${got:-0}" -v w="$total" 'BEGIN{
+  if (g+0 < w-1 || g+0 > w+1) { printf "output is %ss, expected %ss — truncated or unreadable\n", (g==""?"unreadable":g), w; exit 1 }
+}' >&2 || exit 1
+echo "  output reads back at ${got%.*}s"
+
 if [ "${1:-}" != "" ]; then
   [ -f "$1" ] || { echo "narration file not found: $1" >&2; exit 1; }
   vlen=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$OUT/nightshift_silent.mp4")
