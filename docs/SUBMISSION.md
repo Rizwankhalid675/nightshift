@@ -35,6 +35,34 @@ watch a first pass muted.
 | Track | **Track 1 — Run Your MSP Better** (automated triage, multi-agent incident response) |
 | AWS AI service | Amazon Bedrock (Converse API), called at runtime in `src/agent/bedrock.js` |
 
+## Eligibility — what was checked, 18 Nov 2026
+
+The gate is organisational, not technical. Findings:
+
+- **Registration route.** AWS offers one: sign in to the AWS Console and complete AWS Partner
+  Central registration. There is no separate signup.
+- **The project's AWS account (<aws-account-redacted>) cannot reach Partner Central.** The console returns
+  `Access denied to partnercentral:ListPartners` and a modal, "Service AWS Partner Central
+  unavailable — Upgrade to paid plan to access this service", with a banner listing the services
+  unavailable on the current plan. Cost Management shows a Free Tier section.
+  **So this account cannot confirm partner status, and cannot register, without a billing change.**
+  It does not by itself prove the organisation is not a partner — the console refuses to look.
+- **Public AWS Partner Solutions Finder:** no listing for "Sinister Diesel"; "For Each and Every"
+  matches 1,663 results, i.e. common words, not an entry. The finder lists partners with public
+  profiles, typically validated or tiered ones, so a baseline-registered organisation might not
+  appear. Evidence, not proof.
+- **Cost and approval time: unknown.** AWS's own pages do not state them, and third-party guides
+  contradict each other (free vs $2,500/yr; an hour vs several months). Not quoted here as fact.
+
+**The cheap decisive check, which needs a person:** ask whoever owns the AWS relationship whether
+the organisation is already an APN member, or try the legacy Partner Central sign-in at
+https://partnercentral.awspartner.com/partnercentral2/s/login. If it is a member, the org name and
+email domain are the only two missing fields.
+
+**If it is not a member,** registering purely to enter means a billing change plus a corporate
+decision to become an AWS Partner, against an unknown approval clock and a 11 Dec deadline. That
+is a company decision, not a form to fill in.
+
 ## Only you can do these
 
 1. **Upload the video to YouTube, public.** Not unlisted.
