@@ -2,9 +2,11 @@
 
 **Agentic on-call triage for MSPs. Deterministic correlation turns an alert flood into a handful of incidents, Amazon Bedrock diagnoses each one, and a policy gate decides whether a robot may act — with a verifiable receipt for every decision.**
 
-Built for the **AWS MSP AI Hackathon**, Track 1: Run Your MSP Better.
+Built for the **AWS MSP AI Hackathon** (Track 1: Run Your MSP Better). Not entered — that event is
+open only to AWS Partner Network member organisations, and this was built by an individual. The
+project is finished and runs; it is published here on its own merits.
 
-**Live:** https://webrizz.dev/nightshift/ · **Video:** _(pending — script in [VIDEO.md](VIDEO.md))_ · **Limits:** [what this does not do yet](#honest-limits)
+**Live console:** https://webrizz.dev/nightshift/ · **Limits:** [what this does not do yet](#honest-limits)
 
 ```
 203 alerts  →  21 incidents  →  12 pages to a human
@@ -38,7 +40,7 @@ Four criteria, 25% each.
 | **Potential Impact** | A reproducible benchmark with a published baseline: **94.1% of alert volume removed, with zero real incidents missed**. Every number regenerates from `npm run eval`. | [§3](#3-potential-impact) |
 | **Innovation / Idea** | The novelty is *where the model sits*. It proposes; code decides. A proposal that cites evidence it was never shown is rejected automatically, and nothing irreversible ever runs unattended. | [§4](#4-innovation--idea) |
 
-### Submission artefacts
+### What is here, and where
 
 | Required | Where |
 |---|---|
@@ -46,12 +48,12 @@ Four criteria, 25% each.
 | AWS AI service, called at runtime | Amazon Bedrock Converse — [`src/agent/bedrock.js`](src/agent/bedrock.js), invoked from [`src/agent/multi.js`](src/agent/multi.js) |
 | Track | Track 1 — Run Your MSP Better |
 | **High Level Design document** | [`docs/HLD.md`](docs/HLD.md) |
-| Architecture diagram | [§1](#1-technological-implementation), below |
-| Judging rubric, read from the official rules | [`docs/EVENT.md`](docs/EVENT.md) |
+| Architecture diagram | [`docs/img/architecture.svg`](docs/img/architecture.svg) |
+| The rubric this was built against | [`docs/EVENT.md`](docs/EVENT.md) |
 | **Every metric defined, with its calculation** | [`docs/METRICS.md`](docs/METRICS.md) |
 | The safety claims, asserted as tests | [`tests/safety.test.js`](tests/safety.test.js) |
 | Live run data, for reproducing the hosted site | [`dist-runs/`](dist-runs/) |
-| Demo video | *(link added on submission)* |
+| Demo film, 2:28, narrated | built by [`scripts/build-reel.sh`](scripts/build-reel.sh) from committed frames |
 
 ---
 
@@ -626,7 +628,7 @@ tests/              125 tests
 
 ## New or significantly updated
 
-Newly created during the submission period. Full history is in this repository.
+Written from scratch in November 2026. Full history is in this repository.
 
 ---
 
